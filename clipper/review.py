@@ -133,9 +133,11 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
     return meta
 
 
-def _rank(m: dict):
-    """Posting order: gameplay clips first, backups only when no gameplay clip is ready; then best score, newest."""
-    return (m.get("tier") == "backup", -(m.get("ai_review") or {}).get("score", 0), -m["created"])
+def _rank(m: dict, cfg: dict):
+    """Posting order: gameplay before backups, then [auto] priority_channels, then best score, newest."""
+    top = [c.lower() for c in cfg["auto"].get("priority_channels", [])]
+    return (m.get("tier") == "backup", str(m.get("channel", "")).lower() not in top,
+            -(m.get("ai_review") or {}).get("score", 0), -m["created"])
 
 
 # ---- posting ----------------------------------------------------------------
@@ -192,7 +194,7 @@ def post_due(cfg: dict) -> None:
     """Post at most one approved clip per platform, best score first, if caps/spacing allow."""
     max_age = cfg["auto"]["max_age_hours"] * 3600
     ready = [m for m in items("approved") if time.time() - m["created"] < max_age]
-    ready.sort(key=_rank)
+    ready.sort(key=lambda m: _rank(m, cfg))
     for platform in cfg["upload"]["platforms"]:
         if _can_post(cfg, platform):
             continue
@@ -216,7 +218,7 @@ def post_batch(cfg: dict, n: int) -> None:
                      and m["posts"].get(platform, {}).get("tries", 0) < 2]
             if not ready:
                 break
-            ready.sort(key=_rank)
+            ready.sort(key=lambda m: _rank(m, cfg))
             m = ready[0]
             if _post_one(m, platform, m.get("variant", 1), cfg):
                 posted += 1
