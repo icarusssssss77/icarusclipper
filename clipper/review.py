@@ -62,13 +62,15 @@ player's character or vehicle, the HUD) for MOST of the clip, and the key moment
 A small facecam over the game is fine. It is NOT gameplay if the streamer is just talking to the camera,
 sitting/lying in their room, reading chat, reacting to other videos, watching trailers, or talking
 ABOUT GTA 6 without playing it - even if the topic is GTA 6. Set "gameplay" honestly.
+Also set "gta_related": true only if the clip is clearly about GTA 6 (playing it, or the streamer
+talking about / reacting to GTA 6 specifically). Other games or random chatting = false.
 
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
 best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
 
-Return JSON: {"approve": bool, "gameplay": bool, "score": 1-10 (how likely a stranger watches to the end),
+Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "score": 1-10 (how likely a stranger watches to the end),
 "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
@@ -89,9 +91,17 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
         log.warning("[%s] AI review unavailable - left pending", clip_id)
     else:
         ok = bool(verdict.get("approve")) and int(verdict.get("score", 0)) >= cfg["auto"]["min_score"]
+        meta["tier"] = "gameplay"
         if ok and cfg["auto"].get("gameplay_only", True) and verdict.get("gameplay") is not True:
-            ok = False                      # talking / reacting without the game on screen
-            verdict["reason"] = "no gameplay on screen: " + str(verdict.get("reason", ""))
+            # No game on screen. Keep it only as a backup: about GTA 6 and a higher score. Backups are
+            # posted only when a run has no gameplay clip ready (see _rank).
+            backup = (cfg["auto"].get("backup_when_no_gameplay", True) and verdict.get("gta_related") is True
+                      and int(verdict.get("score", 0)) >= cfg["auto"].get("backup_min_score", 8))
+            if backup:
+                meta["tier"] = "backup"
+            else:
+                ok = False
+                verdict["reason"] = "no gameplay on screen: " + str(verdict.get("reason", ""))
         meta["status"] = "approved" if ok else "rejected"
         best = int(verdict.get("best_hook", 1) or 1)
         meta["variant"] = best if 1 <= best <= len(meta["hooks"]) else 1
@@ -110,10 +120,16 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
                     edit.thumbnail(QUEUE / clip_id / f"v{meta['variant']}.mp4", at, cfg, None, text, thumb, raw=True)
                 except Exception as e:
                     log.warning("[%s] thumbnail failed: %s", clip_id, e)
-        log.info("[%s] AI %s (score %s): %s", clip_id, meta["status"].upper(),
+        log.info("[%s] AI %s%s (score %s): %s", clip_id, meta["status"].upper(),
+                 " as BACKUP (no gameplay)" if ok and meta["tier"] == "backup" else "",
                  verdict.get("score"), verdict.get("reason", ""))
     save(meta)
     return meta
+
+
+def _rank(m: dict):
+    """Posting order: gameplay clips first, backups only when no gameplay clip is ready; then best score, newest."""
+    return (m.get("tier") == "backup", -(m.get("ai_review") or {}).get("score", 0), -m["created"])
 
 
 # ---- posting ----------------------------------------------------------------
@@ -170,7 +186,7 @@ def post_due(cfg: dict) -> None:
     """Post at most one approved clip per platform, best score first, if caps/spacing allow."""
     max_age = cfg["auto"]["max_age_hours"] * 3600
     ready = [m for m in items("approved") if time.time() - m["created"] < max_age]
-    ready.sort(key=lambda m: (-(m.get("ai_review") or {}).get("score", 0), -m["created"]))
+    ready.sort(key=_rank)
     for platform in cfg["upload"]["platforms"]:
         if _can_post(cfg, platform):
             continue
@@ -194,7 +210,7 @@ def post_batch(cfg: dict, n: int) -> None:
                      and m["posts"].get(platform, {}).get("tries", 0) < 2]
             if not ready:
                 break
-            ready.sort(key=lambda m: (-(m.get("ai_review") or {}).get("score", 0), -m["created"]))
+            ready.sort(key=_rank)
             m = ready[0]
             if _post_one(m, platform, m.get("variant", 1), cfg):
                 posted += 1

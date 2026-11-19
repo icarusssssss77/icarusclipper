@@ -115,7 +115,9 @@ posts_per_run = 1             # per platform per run: 13 hourly runs x 1 = 13 Sh
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
 enabled = true
 min_score = 7                 # 1-10; only clips Gemini scores at least this get posted
-gameplay_only = true          # reject clips where the game isn't on screen (streamer just talking, reacting, etc.)
+gameplay_only = true          # gameplay clips come first; clips without the game on screen are rejected...
+backup_when_no_gameplay = true  # ...unless they're clearly about GTA 6: those are kept as backups and posted
+backup_min_score = 8          #    only when a run has no gameplay clip ready. Backups need this score.
 max_age_hours = 12            # approved clips older than this are not posted (stale)
 
 [safety]
