@@ -125,7 +125,12 @@ def run(cfg: dict) -> None:
         name, url, twitch = parse_channel(ch)
         if name in seen:
             continue
-        if twitch:   # just-ended Twitch broadcasts: clip the saved VOD
+        meta = live_info(url)
+        if meta is not None and b.get("only_gta", True) and not is_gta(meta):
+            # live on another game: don't spend the run clipping its VOD either
+            log.info("[%s] live but not playing GTA (%s)", name, meta.get("category") or meta.get("title"))
+            continue
+        if twitch:   # live or just-ended Twitch broadcasts: clip the saved VOD
             vod = latest_vod(name)
             if vod and vod["ended_ago"] < b["recent_hours"] * 3600:
                 done_until = float(state.get(vod["id"], 0))
@@ -138,11 +143,8 @@ def run(cfg: dict) -> None:
                         sources.append((name, f, f"https://twitch.tv/{name}"))
                         seen.add(name)
                         continue
-        meta = live_info(url)
         if meta is None:
             log.info("[%s] not live", name)
-        elif b.get("only_gta", True) and not is_gta(meta):
-            log.info("[%s] live but not playing GTA (%s)", name, meta.get("category") or meta.get("title"))
         else:
             to_record.append((name, url))
             seen.add(name)
