@@ -110,7 +110,17 @@ def process_vod(inp: str, cfg: dict, channel: str | None, section: str | None,
     keep = [x for x in clips if x["score"] >= 6][: c["clips_per_vod"]]
     if len(keep) < 3:
         keep = clips[: max(3, len(keep))]
-    metas = [render_clip(src, cl, cfg, channel, source_label or inp) for cl in keep]
-    if cfg["auto"]["enabled"]:
-        metas = [review.auto_review(m["id"], cfg, src) for m in metas]
+    metas = []
+    for cl in keep:   # one bad clip must not lose the others
+        dur = cl["end"] - cl["start"]
+        if not 5 <= dur <= c["max_len"] * 2:
+            log.warning("skipping clip with a bad cut (%.1f-%.1f s)", cl["start"], cl["end"])
+            continue
+        try:
+            m = render_clip(src, cl, cfg, channel, source_label or inp)
+            if cfg["auto"]["enabled"]:
+                m = review.auto_review(m["id"], cfg, src)
+            metas.append(m)
+        except Exception as e:
+            log.warning("clip failed, skipping it: %s", str(e)[:300])
     return metas

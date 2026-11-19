@@ -115,6 +115,18 @@ def run(cfg: dict) -> None:
     b = cfg["batch"]
     state = json.loads(STATE.read_text()) if STATE.exists() else {}
     shutil.rmtree(WORK, ignore_errors=True)
+    # 1) clips approved in earlier runs: post one right away, before any recording
+    posted = review.post_batch(cfg, b["posts_per_run"], {}, backups=False)
+    # 2) clips an earlier run rendered but never got reviewed (it crashed or ran out of time)
+    max_age = cfg["auto"]["max_age_hours"] * 3600
+    for m in review.items("pending"):
+        if cfg["auto"]["enabled"] and not m.get("ai_review") and time.time() - m["created"] < max_age:
+            try:
+                review.auto_review(m["id"], cfg)
+            except Exception as e:
+                log.warning("[%s] late review failed: %s", m["id"], e)
+    posted = review.post_batch(cfg, b["posts_per_run"], posted, backups=False)
+
     sources: list[tuple[str, Path, str]] = []          # (channel, file, credit link)
     to_record: list[tuple[str, str]] = []              # (channel, live url)
     seen: set[str] = set()
@@ -130,7 +142,8 @@ def run(cfg: dict) -> None:
             # live on another game: don't spend the run clipping its VOD either
             log.info("[%s] live but not playing GTA (%s)", name, meta.get("category") or meta.get("title"))
             continue
-        if twitch:   # live or just-ended Twitch broadcasts: clip the saved VOD
+        if twitch and meta is None:   # just-ended Twitch broadcast: clip the saved VOD
+            # (while a stream is still live its VOD download hangs, so live channels are recorded instead)
             vod = latest_vod(name)
             if vod and vod["ended_ago"] < b["recent_hours"] * 3600:
                 done_until = float(state.get(vod["id"], 0))
@@ -164,7 +177,6 @@ def run(cfg: dict) -> None:
     STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text(json.dumps(state, indent=2))
 
-    posted: dict = {}
     for ch, f, link in sources:
         try:
             pipeline.process_vod(str(f), cfg, ch, None, source_label=link)

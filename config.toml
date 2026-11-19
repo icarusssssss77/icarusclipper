@@ -71,7 +71,7 @@ keyword_weight = 2.0
 [clip]
 min_len = 15
 max_len = 60
-clips_per_vod = 5             # at least 3 are always kept
+clips_per_vod = 3             # best clips kept per streamer per run
 vod_candidates = 10
 min_gap_seconds = 40
 segment_seconds = 6
@@ -121,7 +121,7 @@ max_channels = 2              # channels clipped per run (first ones in the list
                               # each takes ~20 min to clip, and a run has to finish within the hour
 recent_hours = 3              # only broadcasts that are live or ended within this many hours
 min_new_minutes = 10          # skip a channel if fewer new minutes than this since the last run
-live_record_minutes = 20      # if a VOD isn't downloadable but the channel is live, record this long
+live_record_minutes = 15      # live channels are recorded this long each run (shorter = faster runs)
 only_gta = true               # only record channels whose game/title says GTA
 posts_per_run = 1             # per platform per run: 13 hourly runs x 1 = 13 Shorts/day
 
