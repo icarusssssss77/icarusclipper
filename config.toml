@@ -13,6 +13,13 @@ channels = [
   "theburntpeanut",
   "kick.com/adinross",
   "jynxzi",
+  "dukedennis",
+  "agent00",
+  "plaqueboymax",
+  "ddg",
+  "lacy",
+  "thesketchreal",
+  "rdcgaming",
   "zackrawrr",
   "summit1g",
   "fanum",
@@ -23,6 +30,11 @@ channels = [
   "jerma985",
   "brucedropemoff",
   "maximilian_dood",
+  "tfue",
+  "ninja",
+  "shroud",
+  "nickmercs",
+  "youtube.com/@timthetatman/live",
 ]
 max_live_recordings = 5       # record at most this many at once (~5 Mbps each)
 quality = "720p,720p60,best"
