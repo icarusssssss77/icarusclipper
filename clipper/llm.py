@@ -3,46 +3,77 @@
   gemini  free key: https://aistudio.google.com/apikey  -> GEMINI_API_KEY   (first choice)
   groq    free key: https://console.groq.com/keys       -> GROQ_API_KEY     (backup when Gemini rate-limits)
 
-If none works, the pipeline still runs with rule-based cuts and template hooks.
+Gemini walks its model list in order: a busy (503), rate-limited (429) or retired (404)
+model falls through to the next. If nothing works, the pipeline still runs with
+rule-based cuts and template hooks, and nothing is auto-posted.
 """
 from __future__ import annotations
 
+import base64
 import json
 import logging
 import os
 import re
+import time
 
 import requests
 
 log = logging.getLogger(__name__)
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent"
+SKIP = {402, 404, 429, 500, 503, 504}   # 402 = paid-only model on a free key
 
 
-def _gemini(model: str, system: str, user: str) -> str:
-    r = requests.post(
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
-        headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"]}, timeout=180,
-        json={
-            "systemInstruction": {"parts": [{"text": system}]},
-            "contents": [{"role": "user", "parts": [{"text": user}]}],
-            "generationConfig": {"responseMimeType": "application/json", "temperature": 0.7},
-        },
-    )
-    r.raise_for_status()
-    return r.json()["candidates"][0]["content"]["parts"][0]["text"]
+def _models(cfg: dict) -> list[str]:
+    m = cfg["ai"]["models"]["gemini"]
+    return [m] if isinstance(m, str) else list(m)
 
 
-def _groq(model: str, system: str, user: str) -> str:
+def _gemini_call(cfg: dict, parts: list[dict], system: str | None, temperature: float, timeout: int) -> str:
+    body = {"contents": [{"role": "user", "parts": parts}],
+            "generationConfig": {"responseMimeType": "application/json", "temperature": temperature}}
+    if system:
+        body["systemInstruction"] = {"parts": [{"text": system}]}
+    last = None
+    for model in _models(cfg):
+        for attempt in range(2):
+            try:
+                r = requests.post(GEMINI_URL.format(model), json=body, timeout=timeout,
+                                  headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"]})
+            except requests.RequestException as e:
+                last = f"{model}: {e}"
+                break
+            if r.ok:
+                cand = r.json()["candidates"][0]["content"]["parts"]
+                text = "".join(p.get("text", "") for p in cand if not p.get("thought"))
+                log.debug("gemini answered with %s", model)
+                return text
+            last = f"{model}: HTTP {r.status_code}"
+            if r.status_code == 503 and attempt == 0:
+                time.sleep(4)          # brief spike: one quick retry on the same model
+                continue
+            if r.status_code in SKIP:
+                break                  # try the next model
+            r.raise_for_status()       # 400/401/403: bad request or bad key, stop here
+    raise RuntimeError(f"all Gemini models unavailable (last: {last})")
+
+
+def _groq(cfg: dict, system: str, user: str) -> str:
     r = requests.post(
         "https://api.groq.com/openai/v1/chat/completions", timeout=180,
         headers={"Authorization": f"Bearer {os.environ['GROQ_API_KEY']}"},
-        json={"model": model, "temperature": 0.7, "response_format": {"type": "json_object"},
+        json={"model": cfg["ai"]["models"]["groq"], "temperature": 0.7,
+              "response_format": {"type": "json_object"},
               "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}]},
     )
     r.raise_for_status()
     return r.json()["choices"][0]["message"]["content"]
 
 
-PROVIDERS = {"gemini": (_gemini, "GEMINI_API_KEY"), "groq": (_groq, "GROQ_API_KEY")}
+def _gemini_text(cfg: dict, system: str, user: str) -> str:
+    return _gemini_call(cfg, [{"text": user}], system, 0.7, 180)
+
+
+PROVIDERS = {"gemini": (_gemini_text, "GEMINI_API_KEY"), "groq": (_groq, "GROQ_API_KEY")}
 
 
 def ask_json(cfg: dict, system: str, user: str) -> dict | None:
@@ -51,8 +82,8 @@ def ask_json(cfg: dict, system: str, user: str) -> dict | None:
         if not os.environ.get(env):
             continue
         try:
-            return _parse(fn(cfg["ai"]["models"][name], system, user))
-        except Exception as e:  # rate limit, bad JSON, network: try the next one
+            return _parse(fn(cfg, system, user))
+        except Exception as e:  # rate limit, bad JSON, network: try the next provider
             log.warning("%s failed (%s), trying next", name, e)
     log.warning("no AI provider available - using rule-based cuts and hooks")
     return None
@@ -60,24 +91,12 @@ def ask_json(cfg: dict, system: str, user: str) -> dict | None:
 
 def watch_video(cfg: dict, video_bytes: bytes, prompt: str) -> dict | None:
     """Gemini watches a small mp4 and answers in JSON. Only Gemini can see video."""
-    import base64
-
     if not os.environ.get("GEMINI_API_KEY"):
         return None
+    parts = [{"inline_data": {"mime_type": "video/mp4", "data": base64.b64encode(video_bytes).decode()}},
+             {"text": prompt}]
     try:
-        r = requests.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/{cfg['ai']['models']['gemini']}:generateContent",
-            headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"]}, timeout=300,
-            json={
-                "contents": [{"role": "user", "parts": [
-                    {"inline_data": {"mime_type": "video/mp4", "data": base64.b64encode(video_bytes).decode()}},
-                    {"text": prompt},
-                ]}],
-                "generationConfig": {"responseMimeType": "application/json", "temperature": 0.2},
-            },
-        )
-        r.raise_for_status()
-        return _parse(r.json()["candidates"][0]["content"]["parts"][0]["text"])
+        return _parse(_gemini_call(cfg, parts, None, 0.2, 300))
     except Exception as e:
         log.warning("Gemini video review failed: %s", e)
         return None

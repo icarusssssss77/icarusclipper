@@ -35,9 +35,30 @@ def _creds():
     return creds
 
 
-def authorize() -> None:
-    _creds()
-    print("YouTube authorized.")
+def authorize(remote: bool = False) -> None:
+    if not remote:
+        _creds()
+        print("YouTube authorized.")
+        return
+    # Remote: the channel owner approves on THEIR device; no password ever reaches this machine.
+    import os
+
+    from google_auth_oauthlib.flow import InstalledAppFlow
+
+    os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")  # redirect is plain http://localhost
+    secret = SECRETS / "youtube_client_secret.json"
+    if not secret.exists():
+        raise SystemExit(f"missing {secret} - put the downloaded OAuth JSON there first")
+    flow = InstalledAppFlow.from_client_secrets_file(str(secret), SCOPES, redirect_uri="http://localhost:8765/")
+    url, _ = flow.authorization_url(access_type="offline", prompt="consent")
+    print("\n1) Send this link to the YouTube channel owner:\n\n" + url)
+    print("\n2) They sign in, click Allow, and land on a page that 'can't be reached'.")
+    print("   They copy the WHOLE address from the address bar and send it back.\n")
+    back = input("3) Paste that address here: ").strip()
+    flow.fetch_token(authorization_response=back)
+    SECRETS.mkdir(exist_ok=True)
+    (SECRETS / "youtube_token.json").write_text(flow.credentials.to_json())
+    print("YouTube authorized. Token saved to secrets/youtube_token.json")
 
 
 def upload(video: Path, meta: dict, cfg: dict) -> str:
