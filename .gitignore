@@ -1,4 +1,13 @@
-out/
+.env
 .venv/
+secrets/
+output/
+buffer/
+__pycache__/
+*.pyc
+_seed/
+out/
 client_secret.json
 token.json
+assets/fonts/
+.DS_Store
