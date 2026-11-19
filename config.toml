@@ -93,11 +93,11 @@ youtube_privacy = "public"
 
 [batch]                       # `python -m clipper batch` - what the scheduled GitHub Action runs
 minutes = 45                  # look at the most recent N minutes of each broadcast per run
-max_channels = 3              # channels clipped per run (first ones in the list that are live/just ended)
+max_channels = 4              # channels clipped per run (first ones in the list that are live/just ended)
 recent_hours = 3              # only broadcasts that are live or ended within this many hours
 min_new_minutes = 10          # skip a channel if fewer new minutes than this since the last run
 live_record_minutes = 20      # if a VOD isn't downloadable but the channel is live, record this long
-posts_per_run = 1             # per platform per run; 6 runs/day x 1 = YouTube's 6/day quota
+posts_per_run = 2             # per platform per run (13 hourly runs); daily caps still apply
 
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
 enabled = true
@@ -107,7 +107,7 @@ max_age_hours = 12            # approved clips older than this are not posted (s
 [safety]
 min_minutes_between_posts = 90   # spread posts out per platform
 [safety.daily_caps]
-youtube = 6                   # free YouTube API quota allows ~6 uploads/day
+youtube = 20                  # YouTube API allows 100/day; ~10-20 avoids looking like spam
 tiktok = 10
 instagram = 10
 

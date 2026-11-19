@@ -1,16 +1,12 @@
 name: Clip GTA 6 streams
 
-# Six runs at peak US hours, each posts the best clip -> 6 Shorts/day = YouTube's free API quota.
-# GitHub cron is UTC (and can start a few minutes late). Eastern (EST) = UTC-5:
-#   20:00=3PM  22:00=5PM  00:00=7PM  02:00=9PM  04:00=11PM  06:00=1AM
+# Hourly runs 2 PM - 2 AM Eastern (13 runs). Each posts up to [batch] posts_per_run clips,
+# within [safety.daily_caps] (YouTube allows 100 uploads/day per project since Dec 2025).
+# GitHub cron is UTC (can start a few minutes late). EST = UTC-5: 19:00 UTC = 2 PM ... 07:00 UTC = 2 AM.
 on:
   schedule:
-    - cron: "0 20 * * *"
-    - cron: "0 22 * * *"
-    - cron: "0 0 * * *"
-    - cron: "0 2 * * *"
-    - cron: "0 4 * * *"
-    - cron: "0 6 * * *"
+    - cron: "0 19-23 * * *"
+    - cron: "0 0-7 * * *"
   workflow_dispatch: {}   # "Run workflow" button for a manual run
 
 concurrency:
