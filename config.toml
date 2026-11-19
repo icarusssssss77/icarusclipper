@@ -1,0 +1,107 @@
+# ---------------------------------------------------------------
+# GTA 6 auto-clipper config. Edit this, not the code.
+# ---------------------------------------------------------------
+
+[stream]
+# English GTA 6 streamers by live viewers on Twitch (launch day, Nov 19 2026), biggest first.
+# Swap in streamers who allow clipping / run clipping campaigns.
+# Kick/YouTube work too as URLs, e.g. "kick.com/somename" or "youtube.com/@somename/live"
+# (no chat signal there - loudness/visual only).
+channels = [
+  "caseoh_", "theburntpeanut", "kaicenat", "xqc", "stableronaldo",
+  "yourragegaming", "jerma985", "brucedropemoff", "fanum", "moistcr1tikal",
+  "jasontheween", "flight23white", "mkyjnr", "maximilian_dood", "cam2r",
+]
+max_live_recordings = 5       # record at most this many at once (~5 Mbps each)
+quality = "720p,720p60,best"
+
+[ai]
+providers = ["gemini", "groq"]   # tried in order; both free. Keys go in .env
+[ai.models]
+gemini = "gemini-2.5-flash"
+groq = "llama-3.3-70b-versatile"
+
+[signals]
+# weights for the combined moment score
+w_loud = 1.0
+w_chat = 1.2
+w_motion = 0.4
+w_scene = 0.4
+w_hud = 0.6
+w_heat = 1.0
+scene_cut_diff = 28           # frame diff (0-255) that counts as a scene cut
+hud_region = [0.70, 0.02, 0.98, 0.20]   # x0,y0,x1,y1 of the HUD/wanted-stars area (fractions)
+
+[detector]                    # live chat spikes (Twitch)
+window_seconds = 10
+baseline_seconds = 300
+spike_multiplier = 3.0
+min_weight = 25               # raise for big streamers, lower for small ones
+cooldown_seconds = 90
+warmup_seconds = 90
+keywords = ["LUL", "KEKW", "OMEGALUL", "LMAO", "CLIP", "NO WAY", "WTF", "???", "POG", "HOLY", "DEAD", "💀", "😭", "WASTED"]
+keyword_weight = 2.0
+
+[clip]
+min_len = 15
+max_len = 60
+clips_per_vod = 5             # at least 3 are always kept
+vod_candidates = 10
+min_gap_seconds = 40
+segment_seconds = 6
+buffer_minutes = 6
+live_chunk_seconds = 120      # live: run loudness/visual signals on each 2-min chunk
+live_min_score = 4.0          # live: combined score needed to make a clip without a chat spike
+max_clips_per_hour = 8
+
+[edit]
+layout = "blur-fit"           # blur-fit (safe default) / center-crop / auto (facecam stack if one is detected - check results)
+width = 1080
+height = 1920
+crf = 21
+
+[captions]
+model = "small.en"            # tiny.en (fastest) / base.en / small.en / medium.en (best)
+font_path = [                 # first one that exists is used (Mac, then server)
+  "/System/Library/Fonts/Supplemental/Arial Black.ttf",
+  "assets/fonts/Anton-Regular.ttf",
+  "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+]
+font_size = 84
+text_color = "#FFFFFF"
+highlight_color = "#FFE600"
+stroke_color = "#000000"
+stroke_width = 8
+max_words_per_line = 3
+margin_bottom = 520
+censor_words = []             # e.g. ["fuck", "shit"] -> f***, s***
+vocab = "GTA 6, Vice City, Leonida, Lucia, Jason, Rockstar, wanted level, five stars, cops, heist"
+
+[hook]
+seconds = 0                   # 0 = hook banner stays the whole clip; e.g. 2.5 = first 2.5 s only
+credit = true                 # small "🎥 @streamer" on screen + credit line in the description
+font_size = 66
+bg_color = "#FFFFFF"
+text_color = "#000000"
+
+[upload]
+platforms = ["youtube"]       # any of: youtube, tiktok, instagram
+youtube_privacy = "public"
+
+[auto]                        # Gemini watches every clip and approves/rejects it - no human review
+enabled = true
+min_score = 7                 # 1-10; only clips Gemini scores at least this get posted
+max_age_hours = 12            # approved clips older than this are not posted (stale)
+
+[safety]
+min_minutes_between_posts = 90   # spread posts out per platform
+[safety.daily_caps]
+youtube = 6                   # free YouTube API quota allows ~6 uploads/day
+tiktok = 10
+instagram = 10
+
+[storage]                     # auto-delete so the server disk never fills
+posted_hours = 24
+rejected_hours = 6
+unposted_hours = 24
+vod_hours = 12
