@@ -11,6 +11,11 @@ python3.12 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
+## Easiest: double-click
+- **Clip.command**: paste a link, get 3 clips, folder opens.
+- **Live.command**: type a Twitch channel, clips the stream while the window is open.
+(First time macOS may block it: right-click -> Open -> Open.)
+
 ## Make clips
 ```bash
 source .venv/bin/activate

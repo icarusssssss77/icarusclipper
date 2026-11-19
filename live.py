@@ -68,7 +68,7 @@ def recorder(source, buf, test):
         cmd = ["ffmpeg", "-v", "error", "-re", "-i", source, "-c:v", "libx264", "-preset", "ultrafast",
                "-g", "60", "-c:a", "aac"] + seg[2:]
         return subprocess.Popen(cmd)
-    sl = subprocess.Popen(["streamlink", "--stdout", "--twitch-disable-ads", source, "best"],
+    sl = subprocess.Popen(["streamlink", "--stdout", source, "best"],
                           stdout=subprocess.PIPE)
     ff = subprocess.Popen(["ffmpeg", "-v", "error", "-i", "pipe:0"] + seg, stdin=sl.stdout)
     return ff
