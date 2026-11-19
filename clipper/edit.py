@@ -75,9 +75,10 @@ def _layout(cfg: dict, facecam) -> tuple[str, int]:
     return g, max(top // 2, 120)
 
 
-def thumbnail(src: Path, t: float, cfg: dict, facecam, text: str, out: Path) -> Path:
-    """Clean full-screen frame at time t (no captions) + big yellow hook text."""
-    graph, hook_y = _layout(cfg, facecam)
+def thumbnail(src: Path, t: float, cfg: dict, facecam, text: str, out: Path, raw: bool = False) -> Path:
+    """Clean full-screen frame at time t (no captions) + big yellow hook text.
+    raw=True: src is an already-rendered vertical clip, use its frame as is."""
+    graph, hook_y = ("[0:v]null[v0]", 260) if raw else _layout(cfg, facecam)
     png = out.with_suffix(".png")
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{t:.2f}", "-i", str(src),
                     "-filter_complex", graph, "-map", "[v0]", "-frames:v", "1", "-update", "1", str(png)],

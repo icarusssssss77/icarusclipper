@@ -92,11 +92,14 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
                 at = min(max(float(verdict.get("thumbnail_second", dur / 3)), 0.5), dur - 0.5)
             except (TypeError, ValueError):
                 at = dur / 3
+            text, thumb = meta["hooks"][meta["variant"] - 1]["text"], QUEUE / clip_id / "thumb.jpg"
             try:
-                edit.thumbnail(src, meta["start"] + at, cfg, meta.get("facecam"),
-                               meta["hooks"][meta["variant"] - 1]["text"], QUEUE / clip_id / "thumb.jpg")
-            except Exception as e:
-                log.warning("[%s] thumbnail failed: %s", clip_id, e)
+                edit.thumbnail(src, meta["start"] + at, cfg, meta.get("facecam"), text, thumb)
+            except Exception:
+                try:   # fall back to a frame of the finished clip
+                    edit.thumbnail(QUEUE / clip_id / f"v{meta['variant']}.mp4", at, cfg, None, text, thumb, raw=True)
+                except Exception as e:
+                    log.warning("[%s] thumbnail failed: %s", clip_id, e)
         log.info("[%s] AI %s (score %s): %s", clip_id, meta["status"].upper(),
                  verdict.get("score"), verdict.get("reason", ""))
     save(meta)
