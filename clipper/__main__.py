@@ -43,6 +43,7 @@ def main() -> None:
     p.add_argument("platform", choices=["youtube", "tiktok"])
     p.add_argument("--remote", action="store_true",
                    help="print a link for the channel owner to approve on their own device")
+    p.add_argument("--finish", metavar="URL", help="the 'can't be reached' address they send back")
     a = ap.parse_args()
 
     if a.cmd == "live":
@@ -91,7 +92,7 @@ def main() -> None:
     elif a.cmd == "auth":
         from .uploaders import tiktok, youtube
         if a.platform == "youtube":
-            youtube.authorize(remote=a.remote)
+            youtube.authorize(remote=a.remote, finish=a.finish)
         else:
             tiktok.authorize()
 

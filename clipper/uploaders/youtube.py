@@ -35,29 +35,43 @@ def _creds():
     return creds
 
 
-def authorize(remote: bool = False) -> None:
-    if not remote:
+def authorize(remote: bool = False, finish: str | None = None) -> None:
+    """Local: opens a browser here. Remote (2 steps, the channel owner approves on THEIR device,
+    no password ever reaches this machine):
+      python -m clipper auth youtube --remote            -> prints a link to send them
+      python -m clipper auth youtube --finish "<url>"    -> the address they send back
+    """
+    if not remote and not finish:
         _creds()
         print("YouTube authorized.")
         return
-    # Remote: the channel owner approves on THEIR device; no password ever reaches this machine.
+    import json
     import os
 
     from google_auth_oauthlib.flow import InstalledAppFlow
 
     os.environ.setdefault("OAUTHLIB_INSECURE_TRANSPORT", "1")  # redirect is plain http://localhost
     secret = SECRETS / "youtube_client_secret.json"
+    pending = SECRETS / "youtube_pending.json"
     if not secret.exists():
         raise SystemExit(f"missing {secret} - put the downloaded OAuth JSON there first")
-    flow = InstalledAppFlow.from_client_secrets_file(str(secret), SCOPES, redirect_uri="http://localhost:8765/")
-    url, _ = flow.authorization_url(access_type="offline", prompt="consent")
-    print("\n1) Send this link to the YouTube channel owner:\n\n" + url)
-    print("\n2) They sign in, click Allow, and land on a page that 'can't be reached'.")
-    print("   They copy the WHOLE address from the address bar and send it back.\n")
-    back = input("3) Paste that address here: ").strip()
-    flow.fetch_token(authorization_response=back)
-    SECRETS.mkdir(exist_ok=True)
+    redirect = "http://localhost:8765/"
+    if not finish:
+        flow = InstalledAppFlow.from_client_secrets_file(str(secret), SCOPES, redirect_uri=redirect)
+        url, state = flow.authorization_url(access_type="offline", prompt="consent")
+        pending.write_text(json.dumps({"state": state, "code_verifier": flow.code_verifier}))
+        pending.chmod(0o600)
+        print(url)
+        return
+    if not pending.exists():
+        raise SystemExit("run `auth youtube --remote` first")
+    p = json.loads(pending.read_text())
+    flow = InstalledAppFlow.from_client_secrets_file(str(secret), SCOPES, redirect_uri=redirect,
+                                                     state=p["state"], code_verifier=p["code_verifier"])
+    flow.fetch_token(authorization_response=finish.strip())
     (SECRETS / "youtube_token.json").write_text(flow.credentials.to_json())
+    (SECRETS / "youtube_token.json").chmod(0o600)
+    pending.unlink()
     print("YouTube authorized. Token saved to secrets/youtube_token.json")
 
 
