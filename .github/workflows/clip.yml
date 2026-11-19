@@ -1,12 +1,16 @@
 name: Clip GTA 6 streams
 
-# Three runs a day at peak US streaming hours (GitHub cron is UTC and can start a few minutes late):
-#   23:00 UTC = 6 PM Eastern, 02:00 UTC = 9 PM Eastern, 05:00 UTC = midnight Eastern
+# Six runs at peak US hours, each posts the best clip -> 6 Shorts/day = YouTube's free API quota.
+# GitHub cron is UTC (and can start a few minutes late). Eastern (EST) = UTC-5:
+#   20:00=3PM  22:00=5PM  00:00=7PM  02:00=9PM  04:00=11PM  06:00=1AM
 on:
   schedule:
-    - cron: "0 23 * * *"
+    - cron: "0 20 * * *"
+    - cron: "0 22 * * *"
+    - cron: "0 0 * * *"
     - cron: "0 2 * * *"
-    - cron: "0 5 * * *"
+    - cron: "0 4 * * *"
+    - cron: "0 6 * * *"
   workflow_dispatch: {}   # "Run workflow" button for a manual run
 
 concurrency:
@@ -51,6 +55,7 @@ jobs:
             output/batch_state.json
             output/upload_history.json
             output/facecams.json
+            output/queue
           key: clipper-state-${{ github.run_id }}
           restore-keys: clipper-state-
 
@@ -77,4 +82,5 @@ jobs:
             output/batch_state.json
             output/upload_history.json
             output/facecams.json
+            output/queue
           key: clipper-state-${{ github.run_id }}

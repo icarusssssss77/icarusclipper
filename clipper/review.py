@@ -15,7 +15,8 @@ import shutil
 import subprocess
 import tempfile
 import time
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from . import llm
@@ -107,6 +108,11 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
 
 
 # ---- posting ----------------------------------------------------------------
+def quota_day() -> str:
+    """YouTube's upload quota resets at midnight Pacific time, so caps count Pacific days."""
+    return datetime.now(ZoneInfo("America/Los_Angeles")).date().isoformat()
+
+
 def _history() -> list[dict]:
     return json.loads(HISTORY.read_text()) if HISTORY.exists() else []
 
@@ -117,7 +123,7 @@ def _cap(cfg: dict, platform: str) -> int:
 
 def _can_post(cfg: dict, platform: str, respect_gap: bool = True) -> str | None:
     hist = [h for h in _history() if h["platform"] == platform]
-    today = date.today().isoformat()
+    today = quota_day()
     if sum(1 for h in hist if h["date"] == today) >= _cap(cfg, platform):
         return f"daily cap {_cap(cfg, platform)} reached"
     gap = cfg["safety"]["min_minutes_between_posts"] * 60
@@ -142,7 +148,7 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
                                "result": result, "at": time.time()}
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     HISTORY.write_text(json.dumps(_history() + [{
-        "id": meta["id"], "platform": platform, "date": date.today().isoformat(), "at": time.time(),
+        "id": meta["id"], "platform": platform, "date": quota_day(), "at": time.time(),
         "hook_structure": hook["structure"], "channel": meta["channel"], "result": result}], indent=2))
     if all(meta["posts"].get(p, {}).get("ok") for p in cfg["upload"]["platforms"]):
         meta["status"] = "posted"

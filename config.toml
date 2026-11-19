@@ -97,7 +97,7 @@ max_channels = 3              # channels clipped per run (first ones in the list
 recent_hours = 3              # only broadcasts that are live or ended within this many hours
 min_new_minutes = 10          # skip a channel if fewer new minutes than this since the last run
 live_record_minutes = 20      # if a VOD isn't downloadable but the channel is live, record this long
-posts_per_run = 2             # per platform; daily caps still apply
+posts_per_run = 1             # per platform per run; 6 runs/day x 1 = YouTube's 6/day quota
 
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
 enabled = true
