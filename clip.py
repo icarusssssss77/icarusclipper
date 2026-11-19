@@ -85,7 +85,7 @@ def ts(t):
     return f"{int(h)}:{int(m):02d}:{s:05.2f}"
 
 
-def write_ass(words, path, clip_len, credit):
+def write_ass(words, path, clip_len, credit, hook=""):
     """Big centered word-group captions (3 words at a time), TikTok style."""
     head = f"""[Script Info]
 ScriptType: v4.00+
@@ -95,6 +95,7 @@ PlayResY: {H}
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
 Style: Cap,Arial Black,96,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,7,3,5,60,60,0,1
+Style: Hook,Arial Black,78,&H00000000,&H000000FF,&H00FFFFFF,&H00FFFFFF,-1,0,0,0,100,100,0,0,3,18,0,8,80,80,330,1
 Style: Credit,Arial,48,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,3,0,8,40,40,170,1
 
 [Events]
@@ -103,6 +104,8 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     lines = []
     if credit:
         lines.append(f"Dialogue: 0,{ts(0)},{ts(clip_len)},Credit,,0,0,0,,{credit}")
+    if hook:  # short hook on screen for the first 2.5 s
+        lines.append(f"Dialogue: 2,{ts(0)},{ts(2.5)},Hook,,0,0,0,,{hook}")
     for i in range(0, len(words), 3):
         g = words[i:i + 3]
         start, end = g[0][0], g[-1][1]
@@ -127,12 +130,49 @@ def render(src, start, clip_len, ass, out, mode):
          "-c:a", "aac", "-b:a", "160k", "-r", "30", "-movflags", "+faststart", str(out)])
 
 
-def caption_text(words, credit):
-    said = " ".join(w for _, _, w in words)
-    hook = re.split(r"(?<=[.!?])\s", said.strip())[0][:80] if said else "GTA 6 moment"
-    title = f"{hook} #Shorts"
+def make_hook(words):
+    """2-6 word hook from the first spoken line, sentence case (ALL CAPS hooks do worse)."""
+    said = " ".join(w for _, _, w in words).strip()
+    first = re.split(r"(?<=[.!?])\s", said)[0] if said else ""
+    ws = re.sub(r"[^\w' !?]", "", first).split()[:6]
+    while len(ws) > 2 and ws[-1].lower() in {"the", "a", "an", "of", "to", "and", "off", "on", "in", "i", "my"}:
+        ws.pop()
+    if len(ws) < 2:
+        return "Wait for it..."
+    h = " ".join(ws)
+    return h[0].upper() + h[1:].lower()
+
+
+def caption_text(words, credit, hook):
+    """3 title variants to A/B test: first-line hook, shock, number promise."""
+    titles = [f"{hook} #Shorts",
+              f"Nobody expected this in GTA 6 #Shorts",
+              f"GTA 6 did this in under 30 seconds #Shorts"]
     body = f"{hook}\n\n{('Credit: ' + credit) if credit else ''}\n{HASHTAGS}".strip()
-    return title, body
+    return titles, body
+
+
+def make_clip(src, st, clip_len, od, tag, a):
+    """Cut one moment from src -> od/tag.mp4 + .json/.txt. Returns the json path."""
+    raw = od / f"{tag}_raw.wav"
+    words = []
+    if not a.no_captions:
+        print(f"   [{tag}] transcribing...")
+        run(["ffmpeg", "-y", "-ss", str(st), "-t", str(clip_len), "-i", str(src),
+             "-vn", "-ac", "1", "-ar", "16000", str(raw)])
+        words = transcribe(raw, a.model); raw.unlink()
+    hook = make_hook(words) if words else ""
+    ass = od / f"{tag}.ass"; write_ass(words, ass, clip_len, a.credit, hook)
+    print(f"   [{tag}] rendering vertical clip...")
+    render(src, st, clip_len, ass, od / f"{tag}.mp4", a.mode)
+    titles, body = caption_text(words, a.credit, hook or "GTA 6 moment")
+    meta = {"file": f"{tag}.mp4", "source": str(a.source), "start": st,
+            "title": titles[0], "title_variants": titles, "caption": body}
+    (od / f"{tag}.json").write_text(json.dumps(meta, indent=2))
+    (od / f"{tag}.txt").write_text("TITLES (post one per platform, see which wins):\n- "
+                                   + "\n- ".join(titles) + f"\n\nCAPTION:\n{body}\n")
+    print(f"   done -> {od / (tag + '.mp4')}")
+    return od / f"{tag}.json"
 
 
 def main():
@@ -149,28 +189,13 @@ def main():
     a = ap.parse_args()
 
     out_root = Path(a.out); dl = out_root / "_downloads"; dl.mkdir(parents=True, exist_ok=True)
-    print("1/4 getting video..."); src = download(a.source, dl)
+    print("1/3 getting video..."); src = download(a.source, dl)
     name = re.sub(r"\W+", "_", src.stem)[:40]; od = out_root / name; od.mkdir(exist_ok=True)
     clip_len = min(a.len, int(duration(src)))
-    print("2/4 finding best moments..."); starts = a.start or find_moments(src, a.top, clip_len)
+    print("2/3 finding best moments..."); starts = a.start or find_moments(src, a.top, clip_len)
     print("   starts (s):", starts)
     for n, st in enumerate(starts, 1):
-        tag = f"clip_{n:02d}"; raw = od / f"{tag}_raw.wav"
-        words = []
-        if not a.no_captions:
-            print(f"3/4 [{tag}] transcribing...")
-            run(["ffmpeg", "-y", "-ss", str(st), "-t", str(clip_len), "-i", str(src),
-                 "-vn", "-ac", "1", "-ar", "16000", str(raw)])
-            words = transcribe(raw, a.model); raw.unlink()
-        ass = od / f"{tag}.ass"; write_ass(words, ass, clip_len, a.credit)
-        print(f"4/4 [{tag}] rendering vertical clip...")
-        render(src, st, clip_len, ass, od / f"{tag}.mp4", a.mode)
-        title, body = caption_text(words, a.credit)
-        (od / f"{tag}.json").write_text(json.dumps(
-            {"file": f"{tag}.mp4", "source": a.source, "start": st, "title": title, "caption": body},
-            indent=2))
-        (od / f"{tag}.txt").write_text(f"{title}\n\n{body}\n")
-        print(f"   done -> {od / (tag + '.mp4')}")
+        make_clip(src, st, clip_len, od, f"clip_{n:02d}", a)
     print(f"\nAll clips in: {od}")
 
 

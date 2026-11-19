@@ -3,3 +3,4 @@ faster-whisper
 numpy
 google-api-python-client
 google-auth-oauthlib
+streamlink

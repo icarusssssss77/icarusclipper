@@ -31,3 +31,13 @@ open out/
 
 ## Permission rule
 Only clip streams where you're in the creator's clipping program or have their OK.
+
+## Live clipping (auto, while the stream is on)
+```bash
+python live.py twitch.tv/CHANNEL --credit "🎥 @CHANNEL"          # Twitch: chat bursts + audio spikes
+python live.py "https://www.youtube.com/watch?v=LIVE_ID"        # YouTube/Kick: audio spikes
+python live.py twitch.tv/CHANNEL --post-youtube                 # also upload each clip (PRIVATE)
+```
+- `--threshold 2` = more clips, `4` = only big moments. `--cooldown 90` = min seconds between clips.
+- Leave it running (Mac plugged in, lid open). Clips appear in `out/live_.../`.
+- Each clip: on-screen hook (first 2.5 s) + 3 title variants in the `.txt` to A/B test.
