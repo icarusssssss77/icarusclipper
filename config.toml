@@ -8,9 +8,8 @@
 # Kick/YouTube work too as URLs, e.g. "kick.com/somename" or "youtube.com/@somename/live"
 # (no chat signal there - loudness/visual only).
 channels = [
-  "caseoh_", "theburntpeanut", "kaicenat", "xqc", "stableronaldo",
-  "yourragegaming", "jerma985", "brucedropemoff", "fanum", "moistcr1tikal",
-  "jasontheween", "flight23white", "mkyjnr", "maximilian_dood", "cam2r",
+  # Add ONLY streamers who allow clipping (their clipping program / written OK), e.g. "yourchannel".
+  # Empty on purpose: reposting streamers without permission = copyright strikes.
 ]
 max_live_recordings = 5       # record at most this many at once (~5 Mbps each)
 quality = "720p,720p60,best"
@@ -86,10 +85,10 @@ text_color = "#000000"
 
 [upload]
 platforms = ["youtube"]       # any of: youtube, tiktok, instagram
-youtube_privacy = "public"
+youtube_privacy = "private"   # check on YouTube, then make public yourself
 
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
-enabled = true
+enabled = false               # true = Gemini approves AND auto-posts with no human check
 min_score = 7                 # 1-10; only clips Gemini scores at least this get posted
 max_age_hours = 12            # approved clips older than this are not posted (stale)
 
