@@ -5,15 +5,15 @@
 - AGPL: ideas only, no code copied. Everything below is paraphrased facts, numbers and patterns.
 - Read on 2026-11-19 as untrusted data; nothing was run or installed.
 
-Link base (B): https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/
-All links below are B + path.
+Link base: https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/
+All links below are full URLs of the form base + path.
 
 ---
 
 ## 1. What goes viral in GTA Shorts (market facts)
 
-Source: [research/viral-gta-shorts.md](B/research/viral-gta-shorts.md), raw sample in
-[research/viral-gta-shorts-data.md](B/research/viral-gta-shorts-data.md).
+Source: [research/viral-gta-shorts.md](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md), raw sample in
+[research/viral-gta-shorts-data.md](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts-data.md).
 
 The sample is 28 creator Shorts with 500k to 51M views (collected 2026-11-09). Top four formats:
 
@@ -24,27 +24,27 @@ The sample is 28 creator Shorts with 500k to 51M views (collected 2026-11-09). T
 | Creator facecam over gameplay | 9-18s | Small series label, boxed facecam, one-joke punchline | DarkViperAU "We Are THAT Close - GTA 6 News" (1.3M) |
 | Skit | 45-90s | White box hook at top, payoff at the end | RDCworld1 "There has to be a reason for this game taking this long" (5M) |
 
-Lines worth stealing as rules ([viral-gta-shorts.md L14-L21](B/research/viral-gta-shorts.md#L14-L21)):
+Lines worth stealing as rules ([viral-gta-shorts.md L14-L21](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L14-L21)):
 - Hooks are 2-6 words (all 13 sample hooks under 7; relatable scenes may reach 9).
 - Pin the hook for the full clip; first spoken words repeat it; no "hey guys" intros.
 - One coloured keyword in the hook.
 - Reaction clips skip the banner entirely.
-- None of the 28 opened on filler. Spoken-open mix: in-scene cold open 7, claim/news 5, action 4, question 4, number promise 3, setup tease 2 ([L40-L49](B/research/viral-gta-shorts.md#L40-L49)).
-- Captions: about 8-10% of frame height, 1-3 words at a time, bold white with black outline, key word yellow or red, a different colour per speaker when voices overlap ([L67-L71](B/research/viral-gta-shorts.md#L67-L71)).
+- None of the 28 opened on filler. Spoken-open mix: in-scene cold open 7, claim/news 5, action 4, question 4, number promise 3, setup tease 2 ([L40-L49](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L40-L49)).
+- Captions: about 8-10% of frame height, 1-3 words at a time, bold white with black outline, key word yellow or red, a different colour per speaker when voices overlap ([L67-L71](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L67-L71)).
 - Length: reactions 9-25s, info up to about 58s, avoid 60-90s unless it is a skit.
 
-### Fonts seen on top performers ([L80-L91](B/research/viral-gta-shorts.md#L80-L91))
+### Fonts seen on top performers ([L80-L91](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L80-L91))
 Montserrat Black caps for news hooks (MrBossFTW), Bebas Neue on black box for reactions (Kai), TikTok Sans Bold on white box for skits, TikTok Sans SemiBold with a purple keyword for DarkViper, a comic outline font for playful gameplay. All open licences.
 
-### Title patterns ([L54-L65](B/research/viral-gta-shorts.md#L54-L65))
+### Title patterns ([L54-L65](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L54-L65))
 - Name + "Actually" + surprise + emoji for streamer clips ("xQc Actually Robbed A Bank For This").
 - Negation shock, number listicle, CAPS question ("Cost HOW MUCH!?"), curiosity ("What Happens If You Shoot The Moon In GTA 6?"), withheld ending with "...".
 - 35-70 characters is the sweet spot (max 100), 1-2 caps words, emoji at the end for comedy only, "GTA 6" in the title, 2-4 hashtags.
 
 ## 2. Measured effects on 3,481 gaming Shorts
 
-Source: [viral-gta-shorts.md L153-L179](B/research/viral-gta-shorts.md#L153-L179) and the dataset
-[research/gaming-shorts-titles.json](B/research/gaming-shorts-titles.json).
+Source: [viral-gta-shorts.md L153-L179](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L153-L179) and the dataset
+[research/gaming-shorts-titles.json](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/gaming-shorts-titles.json).
 
 Dataset facts: 3,481 titles, 19 channels, niches gta 1,081 / cod 1,400 / other 600 / zombies 400. Each row holds channel, title, views and "lift" (views vs the channel's own recent norm, log scale). So channel size cancels out.
 
@@ -69,7 +69,7 @@ Frame review (75 frames, first 1.2s of each channel's best and worst Shorts): wi
 
 Honest caveat from the authors: these are title effects used as a proxy for on-screen hooks; they rank hooks, they do not forecast views.
 
-### Outlier study ([L121-L151](B/research/viral-gta-shorts.md#L121-L151))
+### Outlier study ([L121-L151](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L121-L151))
 14 streamer outliers (12-117x channel norm). Shared traits worth using as a checklist:
 1. Premise lands in one second.
 2. Title states the situation, withholds the outcome ("Wanted To Prank", "Caught Me").
@@ -80,71 +80,71 @@ Honest caveat from the authors: these are title effects used as a proxy for on-s
 7. Emoji matches the feeling.
 8. No lie: the clip must deliver the twist or it is spam-policy clickbait.
 
-### Zylok teardown and survey ([L181 onward](B/research/viral-gta-shorts.md#L181))
+### Zylok teardown and survey ([L181 onward](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L181))
 - Best clips end on the result, not on the decision or a take. Weak clips ended on choices.
 - Cold open on the first meaningful word.
 - Swear censoring by masking a vowel (F*CK) while audio stays untouched.
 - From 25 clips: one-word captions plus action labels 25/25; colour or white flash 76%; sub-bass boom off a cut 56% (about 1 per 19s, max 3 per clip); music only about 20%; zero camera shake, zero freeze frames (so skip those).
 - Practical rule they derived: boom on the payoff and the 1-2 biggest reactions (at most 1 per 4s), flash on the payoff, punch-in zoom on shouted lines, music only over 2s+ speech-free stretches, nothing on clips already loud.
-- Meme-game music is Content ID claimable. They gate music behind explicit approval and list CC0 mood tracks from OpenGameArt instead ([L260 onward](B/research/viral-gta-shorts.md#L260)).
+- Meme-game music is Content ID claimable. They gate music behind explicit approval and list CC0 mood tracks from OpenGameArt instead ([L260 onward](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L260)).
 
 ## 3. How hooks are checked (algorithm, own words)
 
-Source: [clipper/hooks.py](B/clipper/hooks.py).
+Source: [clipper/hooks.py](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/hooks.py).
 
 Hook check is a rule engine, no AI:
 1. Count words (GTA 6 counts as one). Fail if under 2 or over 8 (9 for relatable situation).
-2. Detect which of nine structures the hook matches using keyword and pattern tests: question, tease, withheld/negation, number promise, shock fact, first-person claim, relatable situation, premise + twist (a shouted caps word besides a few names), superlative ([L12-L45 area](B/clipper/hooks.py#L10-L50)).
+2. Detect which of nine structures the hook matches using keyword and pattern tests: question, tease, withheld/negation, number promise, shock fact, first-person claim, relatable situation, premise + twist (a shouted caps word besides a few names), superlative ([L12-L45 area](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/hooks.py#L10-L50)).
 3. Fail "vague": the hook has at most one content word after removing a stoplist. Fail bare labels: no structure and 4 words or fewer. Fail plain statements: no structure at all. Fail labelling words like "reaction", "compilation", "highlights".
 4. Notes (not fails): first-person alone, caps-twist alone.
 5. Title check: max 100 chars, no more than 2 caps words, not all caps, warn on announcement words, must mention the topic (or carry the hashtag).
 6. Pair check: each hook's title should share a structure with its hook.
 7. Playbook check: each clip type has two lead structures; warn if the hooks used skip both.
 8. Variety: with 3+ hooks, need at least 3 distinct structures so the A/B test tests something.
-9. Edit checks on the clip itself: opens on filler in first 1.5s, dead air of 2s+ with no word or label, 3s+ speech gap with no music decision, hook that repeats a word from the last 3s (spoiler check), labels must be 1-3 words and inside the clip, 60s cap even for multi-segment cuts ([L177 onward](B/clipper/hooks.py#L177)).
+9. Edit checks on the clip itself: opens on filler in first 1.5s, dead air of 2s+ with no word or label, 3s+ speech gap with no music decision, hook that repeats a word from the last 3s (spoiler check), labels must be 1-3 words and inside the clip, 60s cap even for multi-segment cuts ([L177 onward](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/hooks.py#L177)).
 
-Opening-line classifier uses the same idea for the spoken first line: filler, action, in-scene, question, number, claim, setup tease ([L30-L55](B/clipper/hooks.py#L30-L55)).
+Opening-line classifier uses the same idea for the spoken first line: filler, action, in-scene, question, number, claim, setup tease ([L30-L55](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/hooks.py#L30-L55)).
 
 ## 4. How hooks are ranked (simulator)
 
-Source: [clipper/simulate.py](B/clipper/simulate.py).
+Source: [clipper/simulate.py](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/simulate.py).
 
 Algorithm in plain words:
 1. Turn every title in the dataset into a set of features (the structures above plus "names a streamer", "vague", "all caps", "announcement").
 2. Effect of a feature = average lift of titles that have it minus average lift of titles that lack it, per scope. Needs at least 10 examples, else effect is 0.
 3. Bootstrap: resample the rows 200 times to get a 90% range per feature. Scope is chosen narrowly: own uploads first (once they exist), then the GTA niche if it is conclusive (n at least 15 and range excludes 1x), else all gaming.
 4. Score a hook = its single strongest structure effect plus the modifier effects (streamer name, vague, caps, announcement). Taking the max not the sum avoids counting overlapping ideas twice.
-5. Run the simulation: each round re-samples effects, scores every hook, records the winner. Output is expected multiplier, 90% range, win share, and a "keep top 3 with different types" line ([L148-L175](B/clipper/simulate.py#L148-L175)).
-6. Strategy simulator ([strategies](B/clipper/simulate.py)): at a fixed upload budget (8), compares "one hook per clip", "all types", "best 2/3/4 that fit". Per-channel effects are shrunk toward zero when few channels back them. Result they report: best 3 fitting types per clip, 6% average shortfall vs 23% for one hook per clip and 17% for forcing every type including misfits.
+5. Run the simulation: each round re-samples effects, scores every hook, records the winner. Output is expected multiplier, 90% range, win share, and a "keep top 3 with different types" line ([L148-L175](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/simulate.py#L148-L175)).
+6. Strategy simulator ([strategies](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/simulate.py)): at a fixed upload budget (8), compares "one hook per clip", "all types", "best 2/3/4 that fit". Per-channel effects are shrunk toward zero when few channels back them. Result they report: best 3 fitting types per clip, 6% average shortfall vs 23% for one hook per clip and 17% for forcing every type including misfits.
 7. Feedback loop idea: once your own uploads have 48h of data, they get added to the dataset and take priority.
 
 ## 5. Candidate selection
 
-Source: [clipper/candidates.py](B/clipper/candidates.py), [clipper/signals.py](B/clipper/signals.py), score assembly in [clipper/analyze.py L150-L215](B/clipper/analyze.py#L150-L215).
+Source: [clipper/candidates.py](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/candidates.py), [clipper/signals.py](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/signals.py), score assembly in [clipper/analyze.py L150-L215](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/analyze.py#L150-L215).
 
 - Per-second signals: loudness (ffmpeg ebur128), "jump" (how far a second rises above the median of the previous 8s, with a floor at normal talking level so speech after silence is not a jump), YouTube "most replayed" heatmap, hype-keyword and loud-sound-event hits, speech rate. Weighted sum from config; if no heatmap, its weight is shared among the others.
 - Windows: smooth the score, take local peaks, cut a window around each peak (40% before, 60% after the target length), snap start and end to sentence boundaries, drop windows overlapping more than 30%, rank by half peak plus half mean of top 30% of seconds.
 - Clip type guess: reaction (loudness spread of 7 LU or more, loud events, title says react/live, or 2+ hype words per minute) gets 22s target; else info with 45s target.
 - Tier: strong needs score 45+ and evidence (jump 8 LU, 2 hype words, a sound event or heat 0.6); maybe needs 30+ and weaker evidence; recommended count = strong plus half the maybes, capped at one per 3 minutes.
 - Candidate count is about one per 2.5 minutes of source, between 4 and 25.
-- Gem: "scenario windows" start on transcript cues like "let me show you", "first time", "I just built", "try this" and run until a 6s pause. These catch quiet curiosity-gap clips that loudness misses ([candidates.py scenario cues](B/clipper/candidates.py)).
+- Gem: "scenario windows" start on transcript cues like "let me show you", "first time", "I just built", "try this" and run until a 6s pause. These catch quiet curiosity-gap clips that loudness misses ([candidates.py scenario cues](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/candidates.py)).
 - Each candidate also gets a contact sheet image so the AI judges visually.
 
 ## 6. Twitch ad slate detection
 
-Source: [clipper/signals.py ad_mask](B/clipper/signals.py#L96-L124).
+Source: [clipper/signals.py ad_mask](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/signals.py#L96-L124).
 
 Idea, no AI and cheap:
 - Sample 1 frame per second, shrink to 32x18 pixels.
 - A frame is an ad slate if the blue channel average is clearly above red (about 1.8x) and green (about 1.6x) AND the frame is almost flat (mean neighbour pixel difference under about 13). It is the "commercial in progress" flat blue-purple screen.
 - Smooth: fill 1-2s holes inside a break, then delete runs shorter than 5s.
-- Used by setting those seconds' score to 0 and removing words spoken in them, then trimming picks off the ad edges ([analyze.py L172-L174](B/clipper/analyze.py#L172-L174)).
+- Used by setting those seconds' score to 0 and removing words spoken in them, then trimming picks off the ad edges ([analyze.py L172-L174](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/analyze.py#L172-L174)).
 - Only applied to live recordings.
 - Weakness to remember: thresholds were tuned to one slate look; check other platforms (Kick, YouTube have different breaks).
 
 ## 7. Profile: GTA 6 topic setup
 
-Source: [profiles/gta6/profile.yaml](B/profiles/gta6/profile.yaml), [creators.yaml](B/profiles/gta6/creators.yaml), [live.yaml](B/profiles/gta6/live.yaml).
+Source: [profiles/gta6/profile.yaml](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/profiles/gta6/profile.yaml), [creators.yaml](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/profiles/gta6/creators.yaml), [live.yaml](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/profiles/gta6/live.yaml).
 
 Facts:
 - Topic keywords: gta 6, gta vi, grand theft auto, vice city, leonida, rockstar, nopixel, rp, heist, trailer.
@@ -154,11 +154,11 @@ Facts:
 - Watched creators: GTA Series Videos, MrBossFTW, DarkViperAU, xQc, Kai Cenat, VanossGaming, Typical Gamer. Live: xQc (Twitch and Kick), Kai Cenat (Twitch and YouTube), all "topic only" (record only while on topic).
 - Caption fixes (whisper mistakes to correct as whole words): Trevor, Michael, Franklin, Lamar, Lester, Lucia, Leonida get their wrong spellings mapped (e.g. "trever", "lusia", "leonidas").
 - Vocabulary idea: feed a short list of proper names (Lucia, Jason, Leonida, Vice City, Trevor, Michael, Franklin, Lester, Lamar) to the speech recogniser as its initial prompt so it spells names right up front; keep a fix map as the backup layer. Cheap and worth copying.
-- Preferences ([prefs.yaml](B/prefs.yaml)): hooks per video 5 (research says 3 is best), 2 new sources per day, only the first 90 min of long streams analysed.
+- Preferences ([prefs.yaml](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/prefs.yaml)): hooks per video 5 (research says 3 is best), 2 new sources per day, only the first 90 min of long streams analysed.
 
 ## 8. Live recorder and health check
 
-Source: [clipper/live.py](B/clipper/live.py).
+Source: [clipper/live.py](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/live.py).
 
 - Recorder: probe the channel with a yt-dlp metadata call (live or not; Twitch title lives in description). If live, get the HLS URL, then ffmpeg stream-copy into 30-minute segments with reset timestamps (no re-encode, no gap). Each finished chunk becomes a normal job; the newest segment is skipped until done writing.
 - Gapless restart: the new recorder starts first, and only once it is writing does it kill the old one by pid.
@@ -170,10 +170,10 @@ Source: [clipper/live.py](B/clipper/live.py).
 
 ## 9. Other gems
 
-- Multi-streamer edit and story cut ([viral-gta-shorts.md L73-L78](B/research/viral-gta-shorts.md#L73-L78)): join several beats of one stream, or the same cutscene from several streams. Cutscene dialogue is identical across streams, so a transcript search finds every copy ([live.py find](B/clipper/live.py#L446)). Rule: no footage used twice, 3s tolerance; credit each streamer. Reason: reused-content policy and no reach for repeats.
-- Voice separation ([clipper/speakers.py](B/clipper/speakers.py)): demucs two-stem split into vocals and game audio; diarisation assigns speakers to words so overlapping voices can get different caption colours.
-- AI voiceover rule ([L93-L96](B/research/viral-gta-shorts.md#L93-L96)): add one line (10 words max) only for silent gameplay, trailers, news or mid-conversation starts; skip it on reactions; never narrate over the payoff.
-- Dub ([clipper/dub.py](B/clipper/dub.py)): re-render a clip in another language with a cloned voice per speaker (external TTS), speed-up cap about 1.35x, pitch and loudness matched, AI disclosure line and creator credit added in the description. Ethics point: they always disclose.
+- Multi-streamer edit and story cut ([viral-gta-shorts.md L73-L78](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L73-L78)): join several beats of one stream, or the same cutscene from several streams. Cutscene dialogue is identical across streams, so a transcript search finds every copy ([live.py find](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/live.py#L446)). Rule: no footage used twice, 3s tolerance; credit each streamer. Reason: reused-content policy and no reach for repeats.
+- Voice separation ([clipper/speakers.py](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/speakers.py)): demucs two-stem split into vocals and game audio; diarisation assigns speakers to words so overlapping voices can get different caption colours.
+- AI voiceover rule ([L93-L96](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/research/viral-gta-shorts.md#L93-L96)): add one line (10 words max) only for silent gameplay, trailers, news or mid-conversation starts; skip it on reactions; never narrate over the payoff.
+- Dub ([clipper/dub.py](https://github.com/R3LAMP4GO/clipping-gta-6/blob/bde439394c291577a7f5151e35a81fbea61ce440/clipper/dub.py)): re-render a clip in another language with a cloned voice per speaker (external TTS), speed-up cap about 1.35x, pitch and loudness matched, AI disclosure line and creator credit added in the description. Ethics point: they always disclose.
 - Hook count insight: 3 variants of different structure per clip beats 1 or 7.
 
 ---
