@@ -86,10 +86,18 @@ def is_live(url: str) -> bool:
 
 
 def download_section(url: str, start: float, end: float, out: Path) -> Path | None:
+    """Download one part of a VOD. Stream copy (no re-encode) so a 45 min part takes a few minutes;
+    a slow or stuck download gives up instead of failing the run (the caller then tries the live stream)."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    r = subprocess.run(["yt-dlp", "--no-warnings", "-q", "-f", "720p/720p30/720p60/best[height<=720]/best",
-                        "--download-sections", f"*{int(start)}-{int(end)}", "--force-keyframes-at-cuts",
-                        "-o", str(out), url], timeout=1800)
+    try:
+        r = subprocess.run(["yt-dlp", "--no-warnings", "-q", "-f", "720p/720p30/720p60/best[height<=720]/best",
+                            "--download-sections", f"*{int(start)}-{int(end)}",
+                            "-o", str(out), url], timeout=900)
+    except subprocess.TimeoutExpired:
+        log.warning("VOD download timed out after 15 min: %s", url)
+        for f in out.parent.glob(out.stem + ".*"):
+            f.unlink(missing_ok=True)
+        return None
     return out if r.returncode == 0 and out.exists() else None
 
 
