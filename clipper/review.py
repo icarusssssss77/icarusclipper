@@ -57,12 +57,18 @@ Reject (approve=false) if ANY of these: loading/menu/pause/map screens most of t
 or "commercial break" slate, black or frozen video, nothing really happens, it cuts off mid-action
 before the payoff, captions badly wrong, hateful/sexual content, or real personal info on screen.
 
+GAMEPLAY RULE: gameplay = GTA 6 game footage is clearly visible on screen (the game world, the
+player's character or vehicle, the HUD) for MOST of the clip, and the key moment happens IN the game.
+A small facecam over the game is fine. It is NOT gameplay if the streamer is just talking to the camera,
+sitting/lying in their room, reading chat, reacting to other videos, watching trailers, or talking
+ABOUT GTA 6 without playing it - even if the topic is GTA 6. Set "gameplay" honestly.
+
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
 best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
 
-Return JSON: {"approve": bool, "score": 1-10 (how likely a stranger watches to the end),
+Return JSON: {"approve": bool, "gameplay": bool, "score": 1-10 (how likely a stranger watches to the end),
 "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
@@ -83,6 +89,9 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
         log.warning("[%s] AI review unavailable - left pending", clip_id)
     else:
         ok = bool(verdict.get("approve")) and int(verdict.get("score", 0)) >= cfg["auto"]["min_score"]
+        if ok and cfg["auto"].get("gameplay_only", True) and verdict.get("gameplay") is not True:
+            ok = False                      # talking / reacting without the game on screen
+            verdict["reason"] = "no gameplay on screen: " + str(verdict.get("reason", ""))
         meta["status"] = "approved" if ok else "rejected"
         best = int(verdict.get("best_hook", 1) or 1)
         meta["variant"] = best if 1 <= best <= len(meta["hooks"]) else 1
