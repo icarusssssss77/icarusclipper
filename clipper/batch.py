@@ -162,13 +162,15 @@ def run(cfg: dict) -> None:
     STATE.parent.mkdir(parents=True, exist_ok=True)
     STATE.write_text(json.dumps(state, indent=2))
 
+    posted: dict = {}
     for ch, f, link in sources:
         try:
             pipeline.process_vod(str(f), cfg, ch, None, source_label=link)
         except Exception as e:
             log.exception("[%s] processing failed: %s", ch, e)
         f.unlink(missing_ok=True)
+        posted = review.post_batch(cfg, b["posts_per_run"], posted, backups=False)   # gameplay clip ready: post now
 
-    review.post_batch(cfg, b["posts_per_run"])
+    review.post_batch(cfg, b["posts_per_run"], posted)   # nothing posted yet: backups allowed
     review.cleanup(cfg)
     shutil.rmtree(WORK, ignore_errors=True)

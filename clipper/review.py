@@ -207,15 +207,18 @@ def post_due(cfg: dict) -> None:
                 break
 
 
-def post_batch(cfg: dict, n: int) -> None:
-    """Batch runs: post up to n best approved clips per platform now (daily caps apply, no spacing)."""
+def post_batch(cfg: dict, n: int, done: dict | None = None, backups: bool = True) -> dict:
+    """Batch runs: post up to n best approved clips per platform now (daily caps apply, no spacing).
+    `done` = how many this run already posted per platform, so it can be called after every source."""
+    done = done if done is not None else {}
     max_age = cfg["auto"]["max_age_hours"] * 3600
     for platform in cfg["upload"]["platforms"]:
-        posted = 0
+        posted = done.get(platform, 0)
         while posted < n and not _can_post(cfg, platform, respect_gap=False):
             ready = [m for m in items("approved") if time.time() - m["created"] < max_age
                      and not m["posts"].get(platform, {}).get("ok")
-                     and m["posts"].get(platform, {}).get("tries", 0) < 2]
+                     and m["posts"].get(platform, {}).get("tries", 0) < 2
+                     and (backups or m.get("tier") != "backup")]
             if not ready:
                 break
             ready.sort(key=lambda m: _rank(m, cfg))
@@ -226,6 +229,8 @@ def post_batch(cfg: dict, n: int) -> None:
                 m = load(m["id"])
                 m["posts"][platform]["tries"] = m["posts"][platform].get("tries", 0) + 1
                 save(m)
+        done[platform] = posted
+    return done
 
 
 def post_now(clip_id: str, variant: int, platforms: list[str], cfg: dict) -> None:
