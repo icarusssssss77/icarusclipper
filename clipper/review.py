@@ -55,7 +55,11 @@ YouTube Shorts / TikTok / Reels on a clipping channel. Watch the whole video.
 
 Reject (approve=false) if ANY of these: loading/menu/pause/map screens most of the time, an ad break
 or "commercial break" slate, black or frozen video, nothing really happens, it cuts off mid-action
-before the payoff, captions badly wrong, hateful/sexual content, or real personal info on screen.
+before the payoff, captions badly wrong, hateful/sexual content, slurs, real personal info on screen
+(addresses, phone numbers, donation alerts with full names), or the title/hook promises something that
+does not happen in the clip (misleading titles get channels flagged as spam).
+
+Title: TITLE
 
 GAMEPLAY RULE: gameplay = GTA 6 game footage is clearly visible on screen (the game world, the
 player's character or vehicle, the HUD) for MOST of the clip, and the key moment happens IN the game.
@@ -86,7 +90,8 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
                         "-vf", "scale=360:-2,fps=15", "-c:v", "libx264", "-preset", "veryfast", "-crf", "32",
                         "-c:a", "aac", "-b:a", "48k", "-ac", "1", str(proxy)], check=True)
         hooks = "\n".join(f"{i}. {h['text']}" for i, h in enumerate(meta["hooks"], 1))
-        verdict = llm.watch_video(cfg, proxy.read_bytes(), REVIEW_PROMPT.replace("HOOKS", hooks))
+        verdict = llm.watch_video(cfg, proxy.read_bytes(),
+                                  REVIEW_PROMPT.replace("HOOKS", hooks).replace("TITLE", str(meta.get("title", ""))))
     meta["ai_review"] = verdict
     if not verdict:
         meta["status"] = "pending"          # never auto-post without an AI look
