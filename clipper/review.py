@@ -64,13 +64,15 @@ sitting/lying in their room, reading chat, reacting to other videos, watching tr
 ABOUT GTA 6 without playing it - even if the topic is GTA 6. Set "gameplay" honestly.
 Also set "gta_related": true only if the clip is clearly about GTA 6 (playing it, or the streamer
 talking about / reacting to GTA 6 specifically). Other games or random chatting = false.
+Set "trailer_reaction": true if the clip mostly shows an official trailer or someone else's video
+(the streamer watching/reacting to it) rather than their own stream.
 
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
 best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
 
-Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "score": 1-10 (how likely a stranger watches to the end),
+Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "score": 1-10 (how likely a stranger watches to the end),
 "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
@@ -96,6 +98,7 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
             # No game on screen. Keep it only as a backup: about GTA 6 and a higher score. Backups are
             # posted only when a run has no gameplay clip ready (see _rank).
             backup = (cfg["auto"].get("backup_when_no_gameplay", True) and verdict.get("gta_related") is True
+                      and verdict.get("trailer_reaction") is not True   # copyright-claim risk
                       and int(verdict.get("score", 0)) >= cfg["auto"].get("backup_min_score", 8))
             if backup:
                 meta["tier"] = "backup"
