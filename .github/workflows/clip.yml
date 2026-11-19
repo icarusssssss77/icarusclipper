@@ -1,0 +1,82 @@
+name: Clip GTA 6 streams
+
+# Hourly runs 2 PM - 2 AM Eastern (13 runs). Each posts up to [batch] posts_per_run clips,
+# within [safety.daily_caps] (YouTube allows 100 uploads/day per project since Dec 2025).
+# GitHub cron is UTC (can start a few minutes late). EST = UTC-5: 19:00 UTC = 2 PM ... 07:00 UTC = 2 AM.
+on:
+  schedule:
+    - cron: "0 19-23 * * *"
+    - cron: "0 0-7 * * *"
+  workflow_dispatch: {}   # "Run workflow" button for a manual run
+
+concurrency:
+  group: clipper
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  clip:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install ffmpeg + font
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg fonts-dejavu-core
+          mkdir -p assets/fonts
+          curl -fsSL -o assets/fonts/Anton-Regular.ttf https://github.com/google/fonts/raw/main/ofl/anton/Anton-Regular.ttf
+
+      - name: Install Python packages
+        run: pip install -q -r requirements.txt
+
+      - name: Restore Whisper model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: whisper-small-en-v1
+
+      - name: Restore clipper state (what was clipped / posted)
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            output/batch_state.json
+            output/upload_history.json
+            output/facecams.json
+            output/queue
+          key: clipper-state-${{ github.run_id }}
+          restore-keys: clipper-state-
+
+      - name: Unpack keys (from the CLIPPER_BUNDLE secret)
+        env:
+          CLIPPER_BUNDLE: ${{ secrets.CLIPPER_BUNDLE }}
+        run: |
+          if [ -z "$CLIPPER_BUNDLE" ]; then echo "CLIPPER_BUNDLE secret is missing"; exit 1; fi
+          printf '%s' "$CLIPPER_BUNDLE" | base64 -d | tar xz
+          chmod 600 .env secrets/*
+
+      - name: Clip + post
+        run: python -m clipper batch
+
+      - name: Status
+        if: always()
+        run: python -m clipper status || true
+
+      - name: Save clipper state
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            output/batch_state.json
+            output/upload_history.json
+            output/facecams.json
+            output/queue
+          key: clipper-state-${{ github.run_id }}

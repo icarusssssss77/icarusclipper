@@ -25,8 +25,8 @@ ANNOUNCE = re.compile(
 def reject_reason(hook: str) -> str | None:
     h = hook.strip()
     words = h.split()
-    if not 2 <= len(words) <= 6:
-        return "must be 2-6 words"
+    if not 2 <= len(words) <= 7:
+        return "must be 2-7 words"
     letters = [c for c in h if c.isalpha()]
     if len(letters) > 4 and sum(c.isupper() for c in letters) / len(letters) > 0.7:
         return "ALL CAPS"

@@ -15,7 +15,8 @@ import shutil
 import subprocess
 import tempfile
 import time
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pathlib import Path
 
 from . import llm
@@ -59,11 +60,14 @@ before the payoff, captions badly wrong, hateful/sexual content, or real persona
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
+best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
+
 Return JSON: {"approve": bool, "score": 1-10 (how likely a stranger watches to the end),
-"best_hook": 1-3, "problems": [short strings], "reason": "one sentence"}"""
+"best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
+crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
 
-def auto_review(clip_id: str, cfg: dict) -> dict:
+def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
     meta = load(clip_id)
     src = QUEUE / clip_id / "v1.mp4"
     with tempfile.TemporaryDirectory() as td:
@@ -82,6 +86,21 @@ def auto_review(clip_id: str, cfg: dict) -> dict:
         meta["status"] = "approved" if ok else "rejected"
         best = int(verdict.get("best_hook", 1) or 1)
         meta["variant"] = best if 1 <= best <= len(meta["hooks"]) else 1
+        if ok and src is not None:
+            from . import edit
+            dur = meta["end"] - meta["start"]
+            try:
+                at = min(max(float(verdict.get("thumbnail_second", dur / 3)), 0.5), dur - 0.5)
+            except (TypeError, ValueError):
+                at = dur / 3
+            text, thumb = meta["hooks"][meta["variant"] - 1]["text"], QUEUE / clip_id / "thumb.jpg"
+            try:
+                edit.thumbnail(src, meta["start"] + at, cfg, meta.get("facecam"), text, thumb)
+            except Exception:
+                try:   # fall back to a frame of the finished clip
+                    edit.thumbnail(QUEUE / clip_id / f"v{meta['variant']}.mp4", at, cfg, None, text, thumb, raw=True)
+                except Exception as e:
+                    log.warning("[%s] thumbnail failed: %s", clip_id, e)
         log.info("[%s] AI %s (score %s): %s", clip_id, meta["status"].upper(),
                  verdict.get("score"), verdict.get("reason", ""))
     save(meta)
@@ -89,6 +108,11 @@ def auto_review(clip_id: str, cfg: dict) -> dict:
 
 
 # ---- posting ----------------------------------------------------------------
+def quota_day() -> str:
+    """YouTube's upload quota resets at midnight Pacific time, so caps count Pacific days."""
+    return datetime.now(ZoneInfo("America/Los_Angeles")).date().isoformat()
+
+
 def _history() -> list[dict]:
     return json.loads(HISTORY.read_text()) if HISTORY.exists() else []
 
@@ -99,7 +123,7 @@ def _cap(cfg: dict, platform: str) -> int:
 
 def _can_post(cfg: dict, platform: str, respect_gap: bool = True) -> str | None:
     hist = [h for h in _history() if h["platform"] == platform]
-    today = date.today().isoformat()
+    today = quota_day()
     if sum(1 for h in hist if h["date"] == today) >= _cap(cfg, platform):
         return f"daily cap {_cap(cfg, platform)} reached"
     gap = cfg["safety"]["min_minutes_between_posts"] * 60
@@ -124,7 +148,7 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
                                "result": result, "at": time.time()}
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     HISTORY.write_text(json.dumps(_history() + [{
-        "id": meta["id"], "platform": platform, "date": date.today().isoformat(), "at": time.time(),
+        "id": meta["id"], "platform": platform, "date": quota_day(), "at": time.time(),
         "hook_structure": hook["structure"], "channel": meta["channel"], "result": result}], indent=2))
     if all(meta["posts"].get(p, {}).get("ok") for p in cfg["upload"]["platforms"]):
         meta["status"] = "posted"
@@ -148,6 +172,27 @@ def post_due(cfg: dict) -> None:
                     m["posts"][platform]["tries"] = m["posts"][platform].get("tries", 0) + 1
                     save(m)
                 break
+
+
+def post_batch(cfg: dict, n: int) -> None:
+    """Batch runs: post up to n best approved clips per platform now (daily caps apply, no spacing)."""
+    max_age = cfg["auto"]["max_age_hours"] * 3600
+    for platform in cfg["upload"]["platforms"]:
+        posted = 0
+        while posted < n and not _can_post(cfg, platform, respect_gap=False):
+            ready = [m for m in items("approved") if time.time() - m["created"] < max_age
+                     and not m["posts"].get(platform, {}).get("ok")
+                     and m["posts"].get(platform, {}).get("tries", 0) < 2]
+            if not ready:
+                break
+            ready.sort(key=lambda m: (-(m.get("ai_review") or {}).get("score", 0), -m["created"]))
+            m = ready[0]
+            if _post_one(m, platform, m.get("variant", 1), cfg):
+                posted += 1
+            else:
+                m = load(m["id"])
+                m["posts"][platform]["tries"] = m["posts"][platform].get("tries", 0) + 1
+                save(m)
 
 
 def post_now(clip_id: str, variant: int, platforms: list[str], cfg: dict) -> None:

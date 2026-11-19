@@ -70,7 +70,7 @@ def _groq(cfg: dict, system: str, user: str) -> str:
 
 
 def _gemini_text(cfg: dict, system: str, user: str) -> str:
-    return _gemini_call(cfg, [{"text": user}], system, 0.7, 180)
+    return _gemini_call(cfg, [{"text": user}], system, 0.7, 120)
 
 
 PROVIDERS = {"gemini": (_gemini_text, "GEMINI_API_KEY"), "groq": (_groq, "GROQ_API_KEY")}
@@ -89,17 +89,21 @@ def ask_json(cfg: dict, system: str, user: str) -> dict | None:
     return None
 
 
-def watch_video(cfg: dict, video_bytes: bytes, prompt: str) -> dict | None:
-    """Gemini watches a small mp4 and answers in JSON. Only Gemini can see video."""
+def watch_media(cfg: dict, data: bytes, mime: str, prompt: str) -> dict | None:
+    """Gemini looks at a video (video/mp4) or image (image/jpeg) and answers in JSON."""
     if not os.environ.get("GEMINI_API_KEY"):
         return None
-    parts = [{"inline_data": {"mime_type": "video/mp4", "data": base64.b64encode(video_bytes).decode()}},
+    parts = [{"inline_data": {"mime_type": mime, "data": base64.b64encode(data).decode()}},
              {"text": prompt}]
     try:
-        return _parse(_gemini_call(cfg, parts, None, 0.2, 300))
+        return _parse(_gemini_call(cfg, parts, None, 0.2, 90))
     except Exception as e:
-        log.warning("Gemini video review failed: %s", e)
+        log.warning("Gemini %s look failed: %s", mime, e)
         return None
+
+
+def watch_video(cfg: dict, video_bytes: bytes, prompt: str) -> dict | None:
+    return watch_media(cfg, video_bytes, "video/mp4", prompt)
 
 
 def _parse(text: str) -> dict:

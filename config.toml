@@ -3,14 +3,26 @@
 # ---------------------------------------------------------------
 
 [stream]
-# English GTA 6 streamers by live viewers on Twitch (launch day, Nov 19 2026), biggest first.
-# Swap in streamers who allow clipping / run clipping campaigns.
-# Kick/YouTube work too as URLs, e.g. "kick.com/somename" or "youtube.com/@somename/live"
-# (no chat signal there - loudness/visual only).
+# Priority order: biggest streamers first. Each run clips the first [batch] max_channels that are live.
+# Twitch names, or links for YouTube/Kick ("youtube.com/@name/live", "kick.com/name").
 channels = [
-  "caseoh_", "theburntpeanut", "kaicenat", "xqc", "stableronaldo",
-  "yourragegaming", "jerma985", "brucedropemoff", "fanum", "moistcr1tikal",
-  "jasontheween", "flight23white", "mkyjnr", "maximilian_dood", "cam2r",
+  "kaicenat",
+  "youtube.com/@IShowSpeed/live", "ishowspeed",
+  "xqc",
+  "caseoh_",
+  "theburntpeanut",
+  "kick.com/adinross",
+  "jynxzi",
+  "zackrawrr",
+  "summit1g",
+  "fanum",
+  "stableronaldo",
+  "jasontheween",
+  "yourragegaming",
+  "moistcr1tikal",
+  "jerma985",
+  "brucedropemoff",
+  "maximilian_dood",
 ]
 max_live_recordings = 5       # record at most this many at once (~5 Mbps each)
 quality = "720p,720p60,best"
@@ -20,7 +32,7 @@ providers = ["gemini", "groq"]   # tried in order; both free. Keys go in .env
 [ai.models]
 # tried in order; a busy (503), rate-limited (429) or retired (404) model falls through to the next
 # (gemini-4-hydrogen answers tiny tests but returns 402 Payment Required on real clips with a free key)
-gemini = ["gemini-3-flash-preview", "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-4-hydrogen"]
+gemini = ["gemini-3-flash-preview", "gemini-flash-latest", "gemini-flash-lite-latest", "gemini-3.1-flash-lite", "gemini-4-hydrogen"]
 groq = "llama-3.3-70b-versatile"
 
 [signals]
@@ -57,7 +69,8 @@ live_min_score = 4.0          # live: combined score needed to make a clip witho
 max_clips_per_hour = 8
 
 [edit]
-layout = "blur-fit"           # blur-fit (safe default) / center-crop / auto (facecam stack if one is detected - check results)
+layout = "auto"               # auto = full screen: streamer cam on top + gameplay (Gemini finds the cam), else zoomed gameplay
+                              # also: blur-fit (whole 16:9 frame, small) / center-crop / facecam-stack
 width = 1080
 height = 1920
 crf = 21
@@ -90,6 +103,15 @@ text_color = "#000000"
 platforms = ["youtube"]       # any of: youtube, tiktok, instagram
 youtube_privacy = "public"
 
+[batch]                       # `python -m clipper batch` - what the scheduled GitHub Action runs
+minutes = 45                  # look at the most recent N minutes of each broadcast per run
+max_channels = 4              # channels clipped per run (first ones in the list that are live/just ended)
+recent_hours = 3              # only broadcasts that are live or ended within this many hours
+min_new_minutes = 10          # skip a channel if fewer new minutes than this since the last run
+live_record_minutes = 20      # if a VOD isn't downloadable but the channel is live, record this long
+only_gta = true               # only record channels whose game/title says GTA
+posts_per_run = 1             # per platform per run: 13 hourly runs x 1 = 13 Shorts/day
+
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
 enabled = true
 min_score = 7                 # 1-10; only clips Gemini scores at least this get posted
@@ -98,7 +120,7 @@ max_age_hours = 12            # approved clips older than this are not posted (s
 [safety]
 min_minutes_between_posts = 90   # spread posts out per platform
 [safety.daily_caps]
-youtube = 6                   # free YouTube API quota allows ~6 uploads/day
+youtube = 13                  # one per hourly run (YouTube API allows 100/day)
 tiktok = 10
 instagram = 10
 

@@ -36,6 +36,7 @@ def main() -> None:
     p.add_argument("--variant", type=int, default=1, choices=[1, 2, 3])
     p.add_argument("--platforms")
     sub.add_parser("post")
+    sub.add_parser("batch", help="one scheduled run: clip recent broadcasts, post the best")
     sub.add_parser("status")
     p = sub.add_parser("reject")
     p.add_argument("id")
@@ -43,6 +44,7 @@ def main() -> None:
     p.add_argument("platform", choices=["youtube", "tiktok"])
     p.add_argument("--remote", action="store_true",
                    help="print a link for the channel owner to approve on their own device")
+    p.add_argument("--finish", metavar="URL", help="the 'can't be reached' address they send back")
     a = ap.parse_args()
 
     if a.cmd == "live":
@@ -71,6 +73,9 @@ def main() -> None:
         plats = a.platforms.split(",") if a.platforms else cfg["upload"]["platforms"]
         print(f"Posting {a.id} v{a.variant} to {', '.join(plats)}")
         review.post_now(a.id, a.variant, plats, cfg)
+    elif a.cmd == "batch":
+        from . import batch
+        batch.run(cfg)
     elif a.cmd == "post":
         from . import review
         review.post_due(cfg)
@@ -91,7 +96,7 @@ def main() -> None:
     elif a.cmd == "auth":
         from .uploaders import tiktok, youtube
         if a.platform == "youtube":
-            youtube.authorize(remote=a.remote)
+            youtube.authorize(remote=a.remote, finish=a.finish)
         else:
             tiktok.authorize()
 
