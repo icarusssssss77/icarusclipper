@@ -116,6 +116,7 @@ def main():
     ap.add_argument("--model", default="small")
     ap.add_argument("--mode", choices=["blur", "crop"], default="blur")
     ap.add_argument("--no-captions", action="store_true")
+    ap.add_argument("--no-ai", dest="ai", action="store_false", help="skip Claude hooks")
     ap.add_argument("--post-youtube", action="store_true", help="upload each clip as PRIVATE")
     ap.add_argument("--out", default="out")
     a = ap.parse_args()
@@ -130,7 +131,7 @@ def main():
     print(f"Watching {a.source} -> clips in {od}  (Ctrl+C to stop)")
 
     loud, loud_done, scored, pending, last_clip, n = [], [], 0, [], -1e9, 0
-    opts = SimpleNamespace(no_captions=a.no_captions, model=a.model, credit=a.credit, mode=a.mode, source=a.source)
+    opts = SimpleNamespace(no_captions=a.no_captions, model=a.model, credit=a.credit, mode=a.mode, source=a.source, ai=a.ai)
     try:
         while n < a.max_clips:
             time.sleep(2)

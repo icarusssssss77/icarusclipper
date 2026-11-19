@@ -22,6 +22,12 @@ open out/
 - `--mode crop` = fill the screen instead of blurred background.
 - Each clip gets `clip_XX.mp4` + `clip_XX.txt` (title + caption + hashtags to paste).
 
+## AI picks (uses your Claude plan, no extra cost)
+If Claude Code is installed and logged in on the Mac (`claude` works in Terminal), clip.py
+automatically: finds 3x loud candidates -> Whisper transcribes them -> Claude picks the best moments
+and writes 3 hooks per clip (number / shock / relatable; ALL CAPS and vague hooks are filtered out).
+Live mode uses Claude for the hooks. Add `--no-ai` to skip. Captions highlight each word as it's spoken.
+
 ## Post
 - **YouTube Shorts (auto):** set up `client_secret.json` (see top of post_youtube.py), then
   `python post_youtube.py out/<name>/clip_01.json` -> uploads PRIVATE; check it, then make public.

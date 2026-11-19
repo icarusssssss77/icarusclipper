@@ -72,9 +72,12 @@ def find_moments(path, top, clip_len):
     return sorted(out)
 
 
+_MODELS = {}
+
+
 def transcribe(path, model):
     from faster_whisper import WhisperModel
-    m = WhisperModel(model, device="cpu", compute_type="int8")
+    m = _MODELS.get(model) or _MODELS.setdefault(model, WhisperModel(model, device="cpu", compute_type="int8"))
     segs, _ = m.transcribe(str(path), word_timestamps=True, vad_filter=True)
     return [(w.start, w.end, w.word.strip()) for s in segs for w in (s.words or []) if w.word.strip()]
 
@@ -108,12 +111,14 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         lines.append(f"Dialogue: 2,{ts(0)},{ts(2.5)},Hook,,0,0,0,,{hook}")
     for i in range(0, len(words), 3):
         g = words[i:i + 3]
-        start, end = g[0][0], g[-1][1]
-        if i + 3 < len(words):
-            end = min(max(end, start + 0.3), words[i + 3][0])
-        text = " ".join(w for _, _, w in g).upper().replace("{", "").replace("}", "")
-        # \pos puts captions in the lower-middle of the frame, under the gameplay
-        lines.append(f"Dialogue: 1,{ts(start)},{ts(end)},Cap,,0,0,0,,{{\\pos({W//2},{int(H*0.72)})}}{text}")
+        nxt = words[i + 3][0] if i + 3 < len(words) else g[-1][1] + 0.4
+        clean = [w.upper().replace("{", "").replace("}", "") for _, _, w in g]
+        # one event per word: the spoken word turns yellow and pops slightly
+        for k, (ws, we, _) in enumerate(g):
+            end = g[k + 1][0] if k + 1 < len(g) else min(max(we, ws + 0.3), nxt)
+            txt = " ".join((r"{\c&H00E5FF&\fscx112\fscy112}" + c + r"{\r}") if j == k else c
+                           for j, c in enumerate(clean))
+            lines.append(f"Dialogue: 1,{ts(ws)},{ts(end)},Cap,,0,0,0,,{{\\pos({W//2},{int(H*0.72)})}}{txt}")
     path.write_text(head + "\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -143,29 +148,38 @@ def make_hook(words):
     return h[0].upper() + h[1:].lower()
 
 
-def caption_text(words, credit, hook):
-    """3 title variants to A/B test: first-line hook, shock, number promise."""
-    titles = [f"{hook} #Shorts",
-              f"Nobody expected this in GTA 6 #Shorts",
-              f"GTA 6 did this in under 30 seconds #Shorts"]
+def caption_text(words, credit, hook, hooks=None):
+    """3 title variants to A/B test (AI hooks if available, else templates)."""
+    base = (hooks or []) + [hook, "Nobody expected this in GTA 6", "GTA 6 did this in under 30 seconds"]
+    seen = []
+    for h in base:
+        if h and h.lower() not in [x.lower() for x in seen]:
+            seen.append(h)
+    titles = [f"{h} #Shorts" for h in seen[:3]]
+    hook = seen[0]
     body = f"{hook}\n\n{('Credit: ' + credit) if credit else ''}\n{HASHTAGS}".strip()
     return titles, body
 
 
-def make_clip(src, st, clip_len, od, tag, a):
-    """Cut one moment from src -> od/tag.mp4 + .json/.txt. Returns the json path."""
+def make_clip(src, st, clip_len, od, tag, a, words=None, hooks=None):
+    """Cut one moment from src -> od/tag.mp4 + .json/.txt. Returns the json path.
+    words (optional) = already-transcribed words with times relative to st."""
     raw = od / f"{tag}_raw.wav"
-    words = []
-    if not a.no_captions:
+    if words is None and a.no_captions:
+        words = []
+    elif words is None:
         print(f"   [{tag}] transcribing...")
         run(["ffmpeg", "-y", "-ss", str(st), "-t", str(clip_len), "-i", str(src),
              "-vn", "-ac", "1", "-ar", "16000", str(raw)])
         words = transcribe(raw, a.model); raw.unlink()
-    hook = make_hook(words) if words else ""
+    if not hooks and getattr(a, "ai", False):
+        import ai
+        hooks = ai.hooks_for(" ".join(w for _, _, w in words), clip_len)
+    hook = (hooks[0] if hooks else make_hook(words)) if (words or hooks) else ""
     ass = od / f"{tag}.ass"; write_ass(words, ass, clip_len, a.credit, hook)
     print(f"   [{tag}] rendering vertical clip...")
     render(src, st, clip_len, ass, od / f"{tag}.mp4", a.mode)
-    titles, body = caption_text(words, a.credit, hook or "GTA 6 moment")
+    titles, body = caption_text(words, a.credit, hook or "GTA 6 moment", hooks)
     meta = {"file": f"{tag}.mp4", "source": str(a.source), "start": st,
             "title": titles[0], "title_variants": titles, "caption": body}
     (od / f"{tag}.json").write_text(json.dumps(meta, indent=2))
@@ -173,6 +187,35 @@ def make_clip(src, st, clip_len, od, tag, a):
                                    + "\n- ".join(titles) + f"\n\nCAPTION:\n{body}\n")
     print(f"   done -> {od / (tag + '.mp4')}")
     return od / f"{tag}.json"
+
+
+def ai_plan(src, a, clip_len):
+    """Loudness finds 3x candidates (2x long), Whisper transcribes them, Claude picks the best."""
+    import ai
+    win = clip_len * 2
+    cands = find_moments(src, a.top * 3, win)
+    total = duration(src)
+    texts = []
+    for i, st in enumerate(cands):
+        print(f"   transcribing candidate {i + 1}/{len(cands)}...")
+        wav = Path(a.out) / "_cand.wav"
+        run(["ffmpeg", "-y", "-ss", str(st), "-t", str(win), "-i", str(src), "-vn", "-ac", "1", "-ar", "16000", str(wav)])
+        ws = [(s0 + st, e0 + st, w) for s0, e0, w in transcribe(wav, a.model)]
+        wav.unlink()
+        texts.append((st, min(st + win, total), ws))
+    print("   asking Claude to pick the best moments...")
+    picks = ai.pick_moments([(s, e, " ".join(w for _, _, w in ws)) for s, e, ws in texts], a.top, clip_len)
+    if not picks:
+        print("   (Claude unavailable, using loudness picks)")
+        return None
+    plan = []
+    for st, hooks, why in picks:
+        st = max(0.0, min(st, total - clip_len))
+        print(f"   {st:.0f}s: {why}")
+        ws = next((w for s, e, w in texts if s <= st and st + clip_len <= e), None)
+        words = [(s0 - st, e0 - st, w) for s0, e0, w in ws if st <= s0 < st + clip_len] if ws is not None else None
+        plan.append((st, words, hooks))
+    return sorted(plan)
 
 
 def main():
@@ -185,6 +228,7 @@ def main():
     ap.add_argument("--model", default="small", help="whisper model: tiny/base/small/medium")
     ap.add_argument("--mode", choices=["blur", "crop"], default="blur")
     ap.add_argument("--no-captions", action="store_true")
+    ap.add_argument("--no-ai", dest="ai", action="store_false", help="skip Claude moment picks/hooks")
     ap.add_argument("--out", default="out")
     a = ap.parse_args()
 
@@ -192,10 +236,16 @@ def main():
     print("1/3 getting video..."); src = download(a.source, dl)
     name = re.sub(r"\W+", "_", src.stem)[:40]; od = out_root / name; od.mkdir(exist_ok=True)
     clip_len = min(a.len, int(duration(src)))
-    print("2/3 finding best moments..."); starts = a.start or find_moments(src, a.top, clip_len)
-    print("   starts (s):", starts)
-    for n, st in enumerate(starts, 1):
-        make_clip(src, st, clip_len, od, f"clip_{n:02d}", a)
+    print("2/3 finding best moments...")
+    if a.start:
+        plan = [(st, None, None) for st in a.start]
+    else:
+        plan = [(st, None, None) for st in find_moments(src, a.top, clip_len)]
+        if a.ai and not a.no_captions and clip_len < duration(src):
+            plan = ai_plan(src, a, clip_len) or plan
+    print("   starts (s):", [round(p[0]) for p in plan])
+    for n, (st, words, hooks) in enumerate(plan, 1):
+        make_clip(src, st, clip_len, od, f"clip_{n:02d}", a, words, hooks)
     print(f"\nAll clips in: {od}")
 
 
