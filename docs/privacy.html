@@ -1,21 +1,37 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>clipper privacy</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:680px;margin:40px auto;padding:0 16px;color:#222;background:#fff}</style>
-</head><body>
-<h1>Règles de confidentialité</h1>
-<p>clipper est utilisé uniquement par le propriétaire de la chaîne YouTube connectée. Il demande une seule autorisation : publier des vidéos sur cette chaîne (<code>youtube.upload</code>).</p>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>clipper privacy</title><style>body{font:16px/1.6 system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 16px;color:#222;background:#fff}nav a{margin-right:16px}h2{margin-top:32px}</style></head><body>
+<nav><a href="./">Home</a><a href="privacy.html">Privacy Policy</a><a href="terms.html">Terms of Service</a></nav>
+<h1>Privacy Policy</h1>
+<p>Last updated: November 19, 2026</p>
+<p>clipper is a personal tool used only by the owner of the connected YouTube channel.</p>
+
+<h2>YouTube API Services</h2>
+<p>clipper uses YouTube API Services. By using clipper you agree to be bound by the <a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a>. Information handled through YouTube API Services is also subject to the <a href="https://policies.google.com/privacy">Google Privacy Policy</a>.</p>
+
+<h2>What data clipper accesses</h2>
 <ul>
-<li>Le jeton d'accès Google est stocké uniquement sur le serveur privé du propriétaire.</li>
-<li>Aucune donnée personnelle n'est collectée, vendue ni partagée avec des tiers.</li>
-<li>L'accès peut être retiré à tout moment sur <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+<li>One permission: <code>https://www.googleapis.com/auth/youtube.upload</code>, used only to upload videos and set their title, description and tags on the owner's channel.</li>
+<li>clipper does not read your YouTube watch history, subscriptions, comments, analytics, email or contacts.</li>
 </ul>
-<h1>Privacy policy</h1>
-<p>clipper is used only by the owner of the connected YouTube channel. It requests a single permission: uploading videos to that channel (<code>youtube.upload</code>).</p>
+
+<h2>How it is used and stored</h2>
 <ul>
-<li>The Google access token is stored only on the owner's private server.</li>
-<li>No personal data is collected, sold or shared with third parties.</li>
-<li>Access can be revoked at any time at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>.</li>
+<li>The OAuth access and refresh tokens are stored only on the owner's private server, in a file that is never published.</li>
+<li>Video IDs returned by YouTube after an upload are kept in a local log so the tool doesn't post the same clip twice.</li>
+<li>No cookies, analytics or tracking are used on this website.</li>
 </ul>
-<p>clipper's use of information received from Google APIs adheres to the Google API Services User Data Policy.</p>
+
+<h2>Sharing</h2>
+<p>clipper does not sell, share or transfer any user data to third parties.</p>
+
+<h2>Deletion and revoking access</h2>
+<ul>
+<li>You can revoke clipper's access at any time from <a href="https://myaccount.google.com/permissions">Google security settings (myaccount.google.com/permissions)</a>.</li>
+<li>Deleting the token file on the server removes all stored YouTube credentials immediately. Stored data is deleted within 7 days after access is revoked.</li>
+</ul>
+
+<h2>Contact</h2>
+<p>Questions: open an issue at <a href="https://github.com/icarusssssss77/icarusclipper/issues">github.com/icarusssssss77/icarusclipper/issues</a>.</p>
+<p>clipper's use of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
 </body></html>
