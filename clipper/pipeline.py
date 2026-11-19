@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import shutil
 import subprocess
 import time
@@ -16,9 +17,21 @@ log = logging.getLogger(__name__)
 
 
 def duration(src: Path) -> float:
-    out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
-                          "-of", "csv=p=0", str(src)], capture_output=True, text=True, check=True)
-    return float(out.stdout.strip())
+    """Length in seconds. Some downloaded sections report 'N/A' in the container header;
+    then fall back to the streams' lengths, then to actually reading the file."""
+    for entries in ("format=duration", "stream=duration"):
+        out = subprocess.run(["ffprobe", "-v", "error", "-show_entries", entries, "-of", "csv=p=0", str(src)],
+                             capture_output=True, text=True)
+        vals = [float(v) for v in out.stdout.split() if v.replace(".", "", 1).isdigit()]
+        if vals:
+            return max(vals)
+    out = subprocess.run(["ffmpeg", "-hide_banner", "-i", str(src), "-map", "0:a:0?", "-map", "0:v:0?",
+                          "-c", "copy", "-f", "null", "-"], capture_output=True, text=True)
+    times = re.findall(r"time=(\d+):(\d+):([\d.]+)", out.stderr)
+    if not times:
+        raise ValueError(f"cannot read duration of {src}")
+    h, m, sec = times[-1]
+    return int(h) * 3600 + int(m) * 60 + float(sec)
 
 
 def render_clip(src: Path, clip: dict, cfg: dict, channel: str, source: str) -> dict:

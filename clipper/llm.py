@@ -28,7 +28,9 @@ def _models(cfg: dict) -> list[str]:
     return [m] if isinstance(m, str) else list(m)
 
 
-def _gemini_call(cfg: dict, parts: list[dict], system: str | None, temperature: float, timeout: int) -> str:
+def _gemini_call(cfg: dict, parts: list[dict], system: str | None, temperature: float, timeout: int) -> dict:
+    """Returns the parsed JSON answer. A model that is busy/unavailable OR answers with broken JSON
+    is skipped in favour of the next model in the list."""
     body = {"contents": [{"role": "user", "parts": parts}],
             "generationConfig": {"responseMimeType": "application/json", "temperature": temperature}}
     if system:
@@ -43,10 +45,16 @@ def _gemini_call(cfg: dict, parts: list[dict], system: str | None, temperature: 
                 last = f"{model}: {e}"
                 break
             if r.ok:
-                cand = r.json()["candidates"][0]["content"]["parts"]
-                text = "".join(p.get("text", "") for p in cand if not p.get("thought"))
+                try:
+                    cand = r.json()["candidates"][0]["content"]["parts"]
+                    text = "".join(p.get("text", "") for p in cand if not p.get("thought"))
+                    answer = _parse(text)
+                except (KeyError, IndexError, ValueError) as e:
+                    last = f"{model}: unusable answer ({e})"
+                    log.warning("gemini %s gave an unusable answer, trying next model", model)
+                    break
                 log.debug("gemini answered with %s", model)
-                return text
+                return answer
             last = f"{model}: HTTP {r.status_code}"
             if r.status_code == 503 and attempt == 0:
                 time.sleep(4)          # brief spike: one quick retry on the same model
@@ -69,7 +77,7 @@ def _groq(cfg: dict, system: str, user: str) -> str:
     return r.json()["choices"][0]["message"]["content"]
 
 
-def _gemini_text(cfg: dict, system: str, user: str) -> str:
+def _gemini_text(cfg: dict, system: str, user: str) -> dict:
     return _gemini_call(cfg, [{"text": user}], system, 0.7, 120)
 
 
@@ -82,7 +90,8 @@ def ask_json(cfg: dict, system: str, user: str) -> dict | None:
         if not os.environ.get(env):
             continue
         try:
-            return _parse(fn(cfg, system, user))
+            out = fn(cfg, system, user)
+            return out if isinstance(out, dict) else _parse(out)
         except Exception as e:  # rate limit, bad JSON, network: try the next provider
             log.warning("%s failed (%s), trying next", name, e)
     log.warning("no AI provider available - using rule-based cuts and hooks")
@@ -96,7 +105,7 @@ def watch_media(cfg: dict, data: bytes, mime: str, prompt: str) -> dict | None:
     parts = [{"inline_data": {"mime_type": mime, "data": base64.b64encode(data).decode()}},
              {"text": prompt}]
     try:
-        return _parse(_gemini_call(cfg, parts, None, 0.2, 90))
+        return _gemini_call(cfg, parts, None, 0.2, 90)
     except Exception as e:
         log.warning("Gemini %s look failed: %s", mime, e)
         return None
@@ -107,5 +116,9 @@ def watch_video(cfg: dict, video_bytes: bytes, prompt: str) -> dict | None:
 
 
 def _parse(text: str) -> dict:
+    """First JSON object in the text (ignores code fences and anything after the object)."""
     text = re.sub(r"```(json)?", "", text).strip()
-    return json.loads(text[text.find("{"): text.rfind("}") + 1])
+    obj, _ = json.JSONDecoder().raw_decode(text[text.index("{"):])
+    if not isinstance(obj, dict):
+        raise ValueError("answer is not a JSON object")
+    return obj

@@ -93,6 +93,9 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
         log.warning("[%s] AI review unavailable - left pending", clip_id)
     else:
         ok = bool(verdict.get("approve")) and int(verdict.get("score", 0)) >= cfg["auto"]["min_score"]
+        if ok and not meta.get("ai"):   # template hooks ("X did not see this coming") never auto-post
+            ok = False
+            verdict.setdefault("problems", []).append("no AI-written hooks (AI was unavailable)")
         meta["tier"] = "gameplay"
         if ok and cfg["auto"].get("gameplay_only", True) and verdict.get("gameplay") is not True:
             # No game on screen. Keep it only as a backup: about GTA 6 and a higher score. Backups are
