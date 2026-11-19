@@ -21,6 +21,55 @@ def _peaks(profile: np.ndarray, k: int = 10) -> list[int]:
     return sorted(idx, key=lambda i: -profile[i])[:k]
 
 
+AI_PROMPT = """This is one frame from a video game livestream (GTA 6).
+Is there a webcam overlay showing the streamer (their face/body, usually a rectangle in a corner)?
+If yes, return the overlay rectangle as fractions of the full frame (0-1), tight around the webcam image:
+{"facecam": true, "box": [x, y, width, height]}
+If there is no webcam overlay, return {"facecam": false}."""
+
+
+def _cache_file() -> Path:
+    from .config import ROOT
+    return ROOT / "output" / "facecams.json"
+
+
+def find(src: Path, start: float, duration: float, cfg: dict, channel: str):
+    """Facecam box for this channel: cache (3 h) -> Gemini looks at a frame -> numpy detector."""
+    import json
+    import time
+
+    from . import llm
+
+    cache_path = _cache_file()
+    cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
+    hit = cache.get(channel)
+    if hit and time.time() - hit["at"] < 3 * 3600:
+        return tuple(hit["box"]) if hit["box"] else None
+
+    box = None
+    frame = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-ss", f"{start + duration / 2:.2f}", "-i", str(src),
+         "-frames:v", "1", "-vf", "scale=1280:-2", "-f", "image2", "-c:v", "mjpeg", "-q:v", "4", "-"],
+        capture_output=True,
+    ).stdout
+    ans = llm.watch_media(cfg, frame, "image/jpeg", AI_PROMPT) if frame else None
+    if ans is not None:
+        b = ans.get("box") if ans.get("facecam") else None
+        if b and len(b) == 4:
+            x, y, w, h = (max(0.0, min(1.0, float(v))) for v in b)
+            if 0.05 <= w <= 0.6 and 0.05 <= h <= 0.6 and x + w <= 1.01 and y + h <= 1.01:
+                box = (x, y, min(w, 1 - x), min(h, 1 - y))
+    else:
+        try:
+            box = detect(src, start, duration)
+        except subprocess.CalledProcessError:
+            box = None
+    cache[channel] = {"box": list(box) if box else None, "at": time.time()}
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    cache_path.write_text(json.dumps(cache, indent=2))
+    return box
+
+
 def detect(src: Path, start: float, duration: float) -> tuple[float, float, float, float] | None:
     fps = N / max(duration, 1)
     raw = subprocess.run(

@@ -86,7 +86,7 @@ def worker(jobs: queue.Queue, cfg: dict) -> None:
             for cl in clips[:1]:
                 meta = pipeline.render_clip(f, cl, cfg, lc.channel, f"live:{lc.buf.url} ({why})")
                 if cfg["auto"]["enabled"]:
-                    review.auto_review(meta["id"], cfg)
+                    review.auto_review(meta["id"], cfg, f)
         except Exception as e:
             log.exception("clip job failed: %s", e)
 

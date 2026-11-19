@@ -81,13 +81,23 @@ Rules:
   setup or a face mid-reaction; END right after the payoff/result, never trailing off.
 - score 1-10: works for a viewer who never saw the stream (chaos, fails, clutch, funny lines = high;
   quiet driving, menus, ad breaks, filler = low). keep=false if it is not a real moment.
-- hooks: 5 options, 2-6 words each, normal sentence case (never ALL CAPS). Use different structures
-  from: number_promise ("3 cops, 1 getaway"), shock_fact ("He robbed the wrong store"),
-  relatable ("When the plan goes wrong"), withheld_negation ("Nobody expected this getaway").
-  Best when it matches the first spoken line. No vague hype ("insane moment", "wait for it")
-  and no announcement wording ("new", "is here", "out now").
-- title under 70 characters, names GTA 6. caption 1-2 short lines.
-- hashtags 5-8 without '#', include gta6 and the streamer name."""
+- hooks: 5 options, 3-7 words, shown on screen for the whole clip. A hook must make a scroller
+  NEED to see what happens: tease the moment, NEVER give away the payoff/ending.
+  BAD (spoils it): "He pushed him into the propeller". GOOD: "CaseOh did not see the fan coming",
+  "This airboat chase got personal", "3 seconds from disaster".
+  Use different structures: number_promise ("3 cops, 1 getaway"), shock_fact ("He robbed a cop's house"),
+  relatable ("When your friend has one job"), withheld_negation ("Nobody expected this getaway").
+  Name the streamer when it helps. Normal sentence case (one word in caps for emphasis is OK, never
+  all caps). No vague hype ("insane moment", "wait for it"), no announcement wording ("new", "out now").
+- title: under 70 characters, curiosity-first like the hooks (no spoilers), names the streamer and GTA 6,
+  at most 1 emoji, no hashtags.
+- caption: the YouTube/TikTok description, 3 short lines:
+  1) a punchy line that makes people want to watch to the end (no spoiler),
+  2) quick context (who, where in GTA 6, what was happening),
+  3) a question that gets comments (e.g. "Would you have bailed?").
+- hashtags: 6-8 without '#', high-search GTA tags first: GTA6, GTAVI, GTA, then the most relevant of
+  ViceCity, GTA6Gameplay, GTA6Clips, GTAOnline, GrandTheftAuto, plus 1-2 moment-specific tags
+  and the streamer name."""
 
 
 def _snap(words: list[dict], start: float, end: float, lo: float, hi: float, cfg: dict) -> tuple[float, float]:
@@ -101,6 +111,16 @@ def _snap(words: list[dict], start: float, end: float, lo: float, hi: float, cfg
         end = ends[0] + 0.3
     end = min(max(end, start + mn), start + mx, hi)
     return max(lo, start), end
+
+
+def _hashtags(ai_tags: list, channel: str) -> list[str]:
+    """GTA6, GTAVI, GTA always first (YouTube shows the first 3 above the title), then AI tags, then streamer."""
+    out: list[str] = []
+    for t in ["GTA6", "GTAVI", "GTA", *[str(x) for x in ai_tags], "ViceCity", channel]:
+        t = "".join(ch for ch in t.lstrip("#") if ch.isalnum() or ch == "_")
+        if t and t.lower() not in {o.lower() for o in out} and t.lower() != "shorts":
+            out.append(t)
+    return out[:8]
 
 
 def _fallback_hooks(channel: str, words: list[dict]) -> list[dict]:
@@ -149,15 +169,14 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
         if len(hk) < 3:
             hk += [h for h in hooks.pick(_fallback_hooks(channel, in_clip), 4) if h not in hk]
             hk = hk[:3]
-        tags = [str(t).lstrip("#").replace(" ", "") for t in (a or {}).get("hashtags", [])] or \
-            ["gta6", "gta", "gtavi", "vicecity", "gaming", channel.lower()]
+        tags = _hashtags((a or {}).get("hashtags", []), channel)
         clips.append({
             "start": start, "end": end, "peak": it["peak"], "signal": round(it["signal"], 2),
             "score": int((a or {}).get("score") or min(10, max(1, round(it["signal"])))),
             "hooks": hk,
             "title": ((a or {}).get("title") or f"{channel} in GTA 6: {hk[0]['text'] if hk else 'moment'}")[:90],
             "caption": (a or {}).get("caption") or f"Clipped from {channel}'s GTA 6 stream",
-            "hashtags": tags[:8],
+            "hashtags": tags,
             "words": [{**w, "start": w["start"] - start, "end": w["end"] - start} for w in in_clip],
             "ai": a is not None,
         })

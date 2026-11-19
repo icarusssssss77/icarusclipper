@@ -59,11 +59,14 @@ before the payoff, captions badly wrong, hateful/sexual content, or real persona
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
+best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
+
 Return JSON: {"approve": bool, "score": 1-10 (how likely a stranger watches to the end),
-"best_hook": 1-3, "problems": [short strings], "reason": "one sentence"}"""
+"best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
+crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
 
-def auto_review(clip_id: str, cfg: dict) -> dict:
+def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
     meta = load(clip_id)
     src = QUEUE / clip_id / "v1.mp4"
     with tempfile.TemporaryDirectory() as td:
@@ -82,6 +85,18 @@ def auto_review(clip_id: str, cfg: dict) -> dict:
         meta["status"] = "approved" if ok else "rejected"
         best = int(verdict.get("best_hook", 1) or 1)
         meta["variant"] = best if 1 <= best <= len(meta["hooks"]) else 1
+        if ok and src is not None:
+            from . import edit
+            dur = meta["end"] - meta["start"]
+            try:
+                at = min(max(float(verdict.get("thumbnail_second", dur / 3)), 0.5), dur - 0.5)
+            except (TypeError, ValueError):
+                at = dur / 3
+            try:
+                edit.thumbnail(src, meta["start"] + at, cfg, meta.get("facecam"),
+                               meta["hooks"][meta["variant"] - 1]["text"], QUEUE / clip_id / "thumb.jpg")
+            except Exception as e:
+                log.warning("[%s] thumbnail failed: %s", clip_id, e)
         log.info("[%s] AI %s (score %s): %s", clip_id, meta["status"].upper(),
                  verdict.get("score"), verdict.get("reason", ""))
     save(meta)

@@ -57,7 +57,8 @@ live_min_score = 4.0          # live: combined score needed to make a clip witho
 max_clips_per_hour = 8
 
 [edit]
-layout = "blur-fit"           # blur-fit (safe default) / center-crop / auto (facecam stack if one is detected - check results)
+layout = "auto"               # auto = full screen: streamer cam on top + gameplay (Gemini finds the cam), else zoomed gameplay
+                              # also: blur-fit (whole 16:9 frame, small) / center-crop / facecam-stack
 width = 1080
 height = 1920
 crf = 21

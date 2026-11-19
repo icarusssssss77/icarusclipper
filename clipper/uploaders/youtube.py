@@ -81,11 +81,15 @@ def upload(video: Path, meta: dict, cfg: dict) -> str:
 
     yt = build("youtube", "v3", credentials=_creds())
     tags = meta["hashtags"]
+    # Vertical + under 3 min is a Short automatically; no #Shorts needed. The first 3 hashtags
+    # in the description (#GTA6 #GTAVI #GTA) show above the title.
+    search_tags = list(dict.fromkeys(tags + ["GTA 6", "GTA VI", "Grand Theft Auto 6", "GTA 6 gameplay",
+                                             "GTA 6 clips", "Vice City", meta.get("channel", "")]))
     body = {
         "snippet": {
-            "title": meta["title"][:95] + " #Shorts" if "#shorts" not in meta["title"].lower() else meta["title"][:100],
-            "description": meta["caption"] + "\n\n" + " ".join(f"#{t}" for t in tags),
-            "tags": tags,
+            "title": meta["title"][:100],
+            "description": meta["caption"].strip() + "\n\n" + " ".join(f"#{t}" for t in tags),
+            "tags": [t for t in search_tags if t][:30],
             "categoryId": "20",  # Gaming
         },
         "status": {
@@ -98,4 +102,11 @@ def upload(video: Path, meta: dict, cfg: dict) -> str:
     resp = None
     while resp is None:
         _, resp = req.next_chunk()
+    thumb = video.parent / "thumb.jpg"
+    if thumb.exists():
+        try:  # needs a phone-verified channel; a failure here never fails the upload
+            yt.thumbnails().set(videoId=resp["id"], media_body=MediaFileUpload(str(thumb), mimetype="image/jpeg")).execute()
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("thumbnail not set (%s) - verify the channel at youtube.com/verify", e)
     return f"https://youtube.com/shorts/{resp['id']}"

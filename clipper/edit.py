@@ -47,8 +47,8 @@ def _layout(cfg: dict, facecam) -> tuple[str, int]:
     e = cfg["edit"]
     W, H = e["width"], e["height"]
     mode = e["layout"]
-    if mode == "auto":
-        mode = "facecam-stack" if facecam else "blur-fit"
+    if mode == "auto":   # full-screen on phones: face on top if there is one, else zoomed gameplay
+        mode = "facecam-stack" if facecam else "center-crop"
     if mode == "facecam-stack" and facecam:
         cx, cy, cw, ch = facecam
         cam_h = int(H * 0.36) // 2 * 2
@@ -73,6 +73,38 @@ def _layout(cfg: dict, facecam) -> tuple[str, int]:
         f"[bg][fg]overlay=(W-w)/2:{top}[v0]"
     )
     return g, max(top // 2, 120)
+
+
+def thumbnail(src: Path, t: float, cfg: dict, facecam, text: str, out: Path) -> Path:
+    """Clean full-screen frame at time t (no captions) + big yellow hook text."""
+    graph, hook_y = _layout(cfg, facecam)
+    png = out.with_suffix(".png")
+    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-ss", f"{t:.2f}", "-i", str(src),
+                    "-filter_complex", graph, "-map", "[v0]", "-frames:v", "1", "-update", "1", str(png)],
+                   check=True)
+    if not png.exists():   # retry once with fast seek after input (some .ts segments start mid-GOP)
+        subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(src), "-ss", f"{t:.2f}",
+                        "-filter_complex", graph, "-map", "[v0]", "-frames:v", "1", "-update", "1", str(png)],
+                       check=True)
+    img = Image.open(png).convert("RGB")
+    d = ImageDraw.Draw(img)
+    W = img.width
+    lines = textwrap.wrap(text.upper(), width=12) or [text.upper()]   # 2-3 short, huge lines
+    size = 150
+    while True:
+        font = ImageFont.truetype(cfg["captions"]["font_path"], size)
+        if max(d.textlength(l, font=font) for l in lines) <= W - 70 or size <= 70:
+            break
+        size -= 6
+    asc, desc = font.getmetrics()
+    lh = asc + desc + 4
+    y = max(40, hook_y - lh * len(lines) // 2)
+    for i, l in enumerate(lines):
+        lw = d.textlength(l, font=font)
+        d.text(((W - lw) / 2, y + i * lh), l, font=font, fill="#FFE600", stroke_width=12, stroke_fill="#000000")
+    img.save(out, "JPEG", quality=88)
+    png.unlink(missing_ok=True)
+    return out
 
 
 def render(src: Path, start: float, duration: float, out: Path, cfg: dict,

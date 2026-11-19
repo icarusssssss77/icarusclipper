@@ -30,10 +30,7 @@ def render_clip(src: Path, clip: dict, cfg: dict, channel: str, source: str) -> 
     cap = captions.build_caption_track(words, dur, cfg, d)
     cam = None
     if cfg["edit"]["layout"] in ("auto", "facecam-stack"):
-        try:
-            cam = facecam.detect(src, clip["start"], dur)
-        except subprocess.CalledProcessError:
-            cam = None
+        cam = facecam.find(src, clip["start"], dur, cfg, channel)
     credit = edit.credit_png(f"@{channel}", cfg, d / "hookcredit.png") if cfg["hook"].get("credit", True) else None
     if credit:
         link = source.split(" ")[0].removeprefix("live:")
@@ -101,5 +98,5 @@ def process_vod(inp: str, cfg: dict, channel: str | None, section: str | None) -
         keep = clips[: max(3, len(keep))]
     metas = [render_clip(src, cl, cfg, channel, inp) for cl in keep]
     if cfg["auto"]["enabled"]:
-        metas = [review.auto_review(m["id"], cfg) for m in metas]
+        metas = [review.auto_review(m["id"], cfg, src) for m in metas]
     return metas
