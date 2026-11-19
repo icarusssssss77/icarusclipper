@@ -156,7 +156,9 @@ def _history() -> list[dict]:
 
 
 def _cap(cfg: dict, platform: str) -> int:
-    return int(cfg["safety"]["daily_caps"].get(platform, 0))
+    """Daily cap; [safety.cap_overrides."YYYY-MM-DD"] sets a different cap for one (Pacific) day."""
+    day = cfg["safety"].get("cap_overrides", {}).get(quota_day(), {})
+    return int(day.get(platform, cfg["safety"]["daily_caps"].get(platform, 0)))
 
 
 def _can_post(cfg: dict, platform: str, respect_gap: bool = True) -> str | None:

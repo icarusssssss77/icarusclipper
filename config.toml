@@ -140,6 +140,10 @@ min_minutes_between_posts = 90   # spread posts out per platform
 youtube = 13                  # one per hourly run (YouTube API allows 100/day)
 tiktok = 10
 instagram = 10
+# One-day exceptions (the day is counted in Pacific time, like YouTube's quota).
+# Nov 19: 10 Shorts in total. 2 went up overnight before the counter was reset, so 8 more are counted here.
+[safety.cap_overrides."2026-11-19"]
+youtube = 8
 
 [storage]                     # auto-delete so the server disk never fills
 posted_hours = 24
