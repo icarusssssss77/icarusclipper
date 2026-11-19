@@ -67,7 +67,8 @@ def fetch(url: str, work: Path, section: str | None) -> tuple[Path, Path | None,
     return video, info, chat
 
 
-def process_vod(inp: str, cfg: dict, channel: str | None, section: str | None) -> list[dict]:
+def process_vod(inp: str, cfg: dict, channel: str | None, section: str | None,
+                source_label: str | None = None) -> list[dict]:
     if Path(inp).exists():
         src, info, chat = Path(inp), None, None
         channel = channel or Path(inp).stem
@@ -96,7 +97,7 @@ def process_vod(inp: str, cfg: dict, channel: str | None, section: str | None) -
     keep = [x for x in clips if x["score"] >= 6][: c["clips_per_vod"]]
     if len(keep) < 3:
         keep = clips[: max(3, len(keep))]
-    metas = [render_clip(src, cl, cfg, channel, inp) for cl in keep]
+    metas = [render_clip(src, cl, cfg, channel, source_label or inp) for cl in keep]
     if cfg["auto"]["enabled"]:
         metas = [review.auto_review(m["id"], cfg, src) for m in metas]
     return metas

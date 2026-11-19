@@ -36,6 +36,7 @@ def main() -> None:
     p.add_argument("--variant", type=int, default=1, choices=[1, 2, 3])
     p.add_argument("--platforms")
     sub.add_parser("post")
+    sub.add_parser("batch", help="one scheduled run: clip recent broadcasts, post the best")
     sub.add_parser("status")
     p = sub.add_parser("reject")
     p.add_argument("id")
@@ -72,6 +73,9 @@ def main() -> None:
         plats = a.platforms.split(",") if a.platforms else cfg["upload"]["platforms"]
         print(f"Posting {a.id} v{a.variant} to {', '.join(plats)}")
         review.post_now(a.id, a.variant, plats, cfg)
+    elif a.cmd == "batch":
+        from . import batch
+        batch.run(cfg)
     elif a.cmd == "post":
         from . import review
         review.post_due(cfg)

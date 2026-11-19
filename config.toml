@@ -91,6 +91,14 @@ text_color = "#000000"
 platforms = ["youtube"]       # any of: youtube, tiktok, instagram
 youtube_privacy = "public"
 
+[batch]                       # `python -m clipper batch` - what the scheduled GitHub Action runs
+minutes = 45                  # look at the most recent N minutes of each broadcast per run
+max_channels = 3              # channels clipped per run (first ones in the list that are live/just ended)
+recent_hours = 3              # only broadcasts that are live or ended within this many hours
+min_new_minutes = 10          # skip a channel if fewer new minutes than this since the last run
+live_record_minutes = 20      # if a VOD isn't downloadable but the channel is live, record this long
+posts_per_run = 2             # per platform; daily caps still apply
+
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
 enabled = true
 min_score = 7                 # 1-10; only clips Gemini scores at least this get posted
