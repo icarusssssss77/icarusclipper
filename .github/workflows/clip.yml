@@ -64,7 +64,20 @@ jobs:
           chmod 600 .env secrets/*
 
       - name: Clip + post
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}   # optional: phone notifications (see clipper/notify.py)
         run: python -m clipper batch
+
+      - name: Notify on failure
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: |
+          if [ -n "$NTFY_TOPIC" ]; then
+            curl -fsS -m 15 -H "Title: Clipper run failed" -H "Priority: 4" -H "Tags: rotating_light" \
+              -H "Click: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" \
+              -d "Run #$GITHUB_RUN_NUMBER failed. Tap to open the log." "https://ntfy.sh/$NTFY_TOPIC" || true
+          fi
 
       - name: Status
         if: always()

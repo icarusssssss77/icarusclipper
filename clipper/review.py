@@ -19,7 +19,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 from pathlib import Path
 
-from . import llm
+from . import llm, notify
 from .config import ROOT
 
 log = logging.getLogger(__name__)
@@ -182,6 +182,8 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
     except Exception as e:
         meta["posts"][platform] = {"ok": False, "error": str(e), "at": time.time()}
         log.error("[%s] %s upload FAILED: %s", meta["id"], platform, e)
+        notify.send(f"Upload failed ({platform})", f"{meta.get('title', meta['id'])}\n{str(e)[:300]}",
+                    tags=["warning"], priority=4)
         save(meta)
         return False
     meta["posts"][platform] = {"ok": True, "variant": variant, "hook_structure": hook["structure"],
@@ -196,6 +198,11 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
         meta["status"] = "posted"
     save(meta)
     log.info("[%s] posted to %s: %s", meta["id"], platform, result)
+    today = sum(1 for h in _history() if h["platform"] == platform and h["date"] == quota_day())
+    notify.send(f"Posted: {meta.get('title', meta['id'])}",
+                f"{meta['channel']} - {meta.get('tier', 'gameplay')} - AI score {(meta.get('ai_review') or {}).get('score', '?')}"
+                f"\n{platform} today: {today}/{_cap(cfg, platform)}",
+                click=result if str(result).startswith("http") else None, tags=["clapper"])
     return True
 
 
