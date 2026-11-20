@@ -172,6 +172,9 @@ def _can_post(cfg: dict, platform: str, respect_gap: bool = True) -> str | None:
     return None
 
 
+_BLOCKED: set[str] = set()   # platforms that refused an upload for quota reasons during this run
+
+
 def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
     from .uploaders import UPLOADERS
 
@@ -180,11 +183,20 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
     try:
         result = UPLOADERS[platform](video, meta, cfg)
     except Exception as e:
-        meta["posts"][platform] = {"ok": False, "error": str(e), "at": time.time()}
-        log.error("[%s] %s upload FAILED: %s", meta["id"], platform, e)
-        notify.send(f"Upload failed ({platform})", f"{meta.get('title', meta['id'])}\n{str(e)[:300]}",
-                    tags=["warning"], priority=4)
+        err = str(e)
+        quota = "quota" in err.lower() or "429" in err or "rateLimitExceeded" in err
+        tries = meta["posts"].get(platform, {}).get("tries", 0) + (0 if quota else 1)   # a full quota isn't the clip's fault
+        meta["posts"][platform] = {"ok": False, "error": err[:500], "at": time.time(), "tries": tries}
+        log.error("[%s] %s upload FAILED: %s", meta["id"], platform, err[:300])
         save(meta)
+        if quota:
+            _BLOCKED.add(platform)   # stop uploading there for the rest of this run
+            log.warning("%s upload quota is used up - no more uploads this run", platform)
+            notify.send(f"{platform} upload limit reached", "No more uploads until the quota frees up. "
+                        "The clip stays queued for a later run.", tags=["hourglass"])
+        else:
+            notify.send(f"Upload failed ({platform})", f"{meta.get('title', meta['id'])}\n{err[:300]}",
+                        tags=["warning"], priority=4)
         return False
     meta["posts"][platform] = {"ok": True, "variant": variant, "hook_structure": hook["structure"],
                                "result": result, "at": time.time()}
@@ -212,14 +224,12 @@ def post_due(cfg: dict) -> None:
     ready = [m for m in items("approved") if time.time() - m["created"] < max_age]
     ready.sort(key=lambda m: _rank(m, cfg))
     for platform in cfg["upload"]["platforms"]:
-        if _can_post(cfg, platform):
+        if _can_post(cfg, platform) or platform in _BLOCKED:
             continue
         for m in ready:
             if not m["posts"].get(platform, {}).get("ok") and m["posts"].get(platform, {}).get("tries", 0) < 2:
                 m["posts"].setdefault(platform, {})
-                if not _post_one(m, platform, m.get("variant", 1), cfg):
-                    m["posts"][platform]["tries"] = m["posts"][platform].get("tries", 0) + 1
-                    save(m)
+                _post_one(m, platform, m.get("variant", 1), cfg)   # counts its own failed tries
                 break
 
 
@@ -230,7 +240,9 @@ def post_batch(cfg: dict, n: int, done: dict | None = None, backups: bool = True
     max_age = cfg["auto"]["max_age_hours"] * 3600
     for platform in cfg["upload"]["platforms"]:
         posted = done.get(platform, 0)
-        while posted < n and not _can_post(cfg, platform, respect_gap=False):
+        failures = 0
+        while (posted < n and failures < 3 and platform not in _BLOCKED
+               and not _can_post(cfg, platform, respect_gap=False)):
             ready = [m for m in items("approved") if time.time() - m["created"] < max_age
                      and not m["posts"].get(platform, {}).get("ok")
                      and m["posts"].get(platform, {}).get("tries", 0) < 2
@@ -239,12 +251,10 @@ def post_batch(cfg: dict, n: int, done: dict | None = None, backups: bool = True
                 break
             ready.sort(key=lambda m: _rank(m, cfg))
             m = ready[0]
-            if _post_one(m, platform, m.get("variant", 1), cfg):
+            if _post_one(m, platform, m.get("variant", 1), cfg):   # counts its own failed tries
                 posted += 1
             else:
-                m = load(m["id"])
-                m["posts"][platform]["tries"] = m["posts"][platform].get("tries", 0) + 1
-                save(m)
+                failures += 1
         done[platform] = posted
     return done
 
