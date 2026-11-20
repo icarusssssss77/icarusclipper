@@ -150,3 +150,6 @@ posted_hours = 24
 rejected_hours = 6
 unposted_hours = 24
 vod_hours = 12
+
+[stats]                       # views report printed at the end of each run
+extra_videos = ["dKB65Q82JrA", "xx-eorqYDHE"]   # the first two Shorts, posted before the history was kept

@@ -187,4 +187,9 @@ def run(cfg: dict) -> None:
 
     review.post_batch(cfg, b["posts_per_run"], posted)   # nothing posted yet: backups allowed
     review.cleanup(cfg)
+    try:   # how the posted Shorts are doing (never fails the run)
+        from . import stats
+        stats.report(cfg)
+    except Exception as e:
+        log.warning("views report failed: %s", e)
     shutil.rmtree(WORK, ignore_errors=True)

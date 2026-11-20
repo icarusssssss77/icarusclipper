@@ -189,7 +189,9 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
     HISTORY.parent.mkdir(parents=True, exist_ok=True)
     HISTORY.write_text(json.dumps(_history() + [{
         "id": meta["id"], "platform": platform, "date": quota_day(), "at": time.time(),
-        "hook_structure": hook["structure"], "channel": meta["channel"], "result": result}], indent=2))
+        "hook_structure": hook["structure"], "channel": meta["channel"], "result": result,
+        "title": meta.get("title", ""), "tier": meta.get("tier", "gameplay"),
+        "score": (meta.get("ai_review") or {}).get("score")}], indent=2))
     if all(meta["posts"].get(p, {}).get("ok") for p in cfg["upload"]["platforms"]):
         meta["status"] = "posted"
     save(meta)
