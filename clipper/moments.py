@@ -81,6 +81,8 @@ Rules:
   setup or a face mid-reaction; END right after the payoff/result, never trailing off.
 - score 1-10: works for a viewer who never saw the stream (chaos, fails, clutch, funny lines = high;
   quiet driving, menus, ad breaks, filler = low). keep=false if it is not a real moment.
+  Also score high: the streamer reacting to GTA 6 music / the radio / a song, spotting a real-world
+  or pop-culture reference in the game (people, brands, memes, Miami), and lines people would quote.
 - hooks: 5 options, 3-7 words, shown on screen for the whole clip. A hook must make a scroller
   NEED to see what happens: tease the moment, NEVER give away the payoff/ending.
   BAD (spoils it): "He pushed him into the propeller". GOOD: "CaseOh did not see the fan coming",

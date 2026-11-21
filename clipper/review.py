@@ -70,13 +70,17 @@ Also set "gta_related": true only if the clip is clearly about GTA 6 (playing it
 talking about / reacting to GTA 6 specifically). Other games or random chatting = false.
 Set "trailer_reaction": true if the clip mostly shows an official trailer or someone else's video
 (the streamer watching/reacting to it) rather than their own stream.
+Set "kind" to the best fit: "gameplay"; "music_reaction" (the streamer reacting to GTA 6 music, the radio
+or soundtrack, or a song about GTA 6); "culture" (a GTA 6 cultural reference: real-world people, brands,
+memes, Miami / Vice City culture, parodies, things the game is referencing); "reaction" (reacting to
+something else about GTA 6); "talk" (opinions, theories, stories about GTA 6); or "other".
 
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
 best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
 
-Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "score": 1-10 (how likely a stranger watches to the end),
+Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger watches to the end),
 "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
@@ -103,8 +107,9 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
             verdict.setdefault("problems", []).append("no AI-written hooks (AI was unavailable)")
         meta["tier"] = "gameplay"
         if ok and cfg["auto"].get("gameplay_only", True) and verdict.get("gameplay") is not True:
-            # No game on screen. Keep it only as a backup: about GTA 6 and a higher score. Backups are
-            # posted only when a run has no gameplay clip ready (see _rank).
+            # No game on screen. Keep it as a "variety" clip (tier "backup") if it is about GTA 6 and
+            # scores higher: music reactions, cultural references, viral talk. Variety clips fill runs
+            # with no gameplay clip ready, and every [auto] variety_every-th post (see _variety_due).
             backup = (cfg["auto"].get("backup_when_no_gameplay", True) and verdict.get("gta_related") is True
                       and verdict.get("trailer_reaction") is not True   # copyright-claim risk
                       and int(verdict.get("score", 0)) >= cfg["auto"].get("backup_min_score", 8))
@@ -113,6 +118,7 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
             else:
                 ok = False
                 verdict["reason"] = "no gameplay on screen: " + str(verdict.get("reason", ""))
+        meta["kind"] = str(verdict.get("kind") or ("gameplay" if verdict.get("gameplay") else "other"))[:30]
         meta["status"] = "approved" if ok else "rejected"
         best = int(verdict.get("best_hook", 1) or 1)
         meta["variant"] = best if 1 <= best <= len(meta["hooks"]) else 1
@@ -132,17 +138,29 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
                 except Exception as e:
                     log.warning("[%s] thumbnail failed: %s", clip_id, e)
         log.info("[%s] AI %s%s (score %s): %s", clip_id, meta["status"].upper(),
-                 " as BACKUP (no gameplay)" if ok and meta["tier"] == "backup" else "",
+                 f" as VARIETY ({meta['kind']})" if ok and meta["tier"] == "backup" else "",
                  verdict.get("score"), verdict.get("reason", ""))
     save(meta)
     return meta
 
 
-def _rank(m: dict, cfg: dict):
-    """Posting order: gameplay before backups, then [auto] priority_channels, then best score, newest."""
+def _rank(m: dict, cfg: dict, variety_due: bool = False):
+    """Posting order: gameplay before variety clips (the other way round when a variety post is due),
+    then [auto] priority_channels, then best score, newest."""
     top = [c.lower() for c in cfg["auto"].get("priority_channels", [])]
-    return (m.get("tier") == "backup", str(m.get("channel", "")).lower() not in top,
+    return ((m.get("tier") == "backup") != variety_due, str(m.get("channel", "")).lower() not in top,
             -(m.get("ai_review") or {}).get("score", 0), -m["created"])
+
+
+def _variety_due(cfg: dict, platform: str) -> bool:
+    """True when the last (variety_every - 1) posts were all gameplay, so the next one may be a variety clip
+    (music reaction, cultural reference, viral talk). variety_every = 0 turns the mix off."""
+    n = int(cfg["auto"].get("variety_every", 0))
+    if n < 2:
+        return False
+    hist = [h for h in _history() if h["platform"] == platform]
+    last = hist[-(n - 1):]
+    return len(last) == n - 1 and all(h.get("tier", "gameplay") != "backup" for h in last)
 
 
 # ---- posting ----------------------------------------------------------------
@@ -204,7 +222,7 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
     HISTORY.write_text(json.dumps(_history() + [{
         "id": meta["id"], "platform": platform, "date": quota_day(), "at": time.time(),
         "hook_structure": hook["structure"], "channel": meta["channel"], "result": result,
-        "title": meta.get("title", ""), "tier": meta.get("tier", "gameplay"),
+        "title": meta.get("title", ""), "tier": meta.get("tier", "gameplay"), "kind": meta.get("kind", ""),
         "score": (meta.get("ai_review") or {}).get("score")}], indent=2))
     if all(meta["posts"].get(p, {}).get("ok") for p in cfg["upload"]["platforms"]):
         meta["status"] = "posted"
@@ -243,13 +261,14 @@ def post_batch(cfg: dict, n: int, done: dict | None = None, backups: bool = True
         failures = 0
         while (posted < n and failures < 3 and platform not in _BLOCKED
                and not _can_post(cfg, platform, respect_gap=False)):
+            due = _variety_due(cfg, platform)
             ready = [m for m in items("approved") if time.time() - m["created"] < max_age
                      and not m["posts"].get(platform, {}).get("ok")
                      and m["posts"].get(platform, {}).get("tries", 0) < 2
-                     and (backups or m.get("tier") != "backup")]
+                     and (backups or due or m.get("tier") != "backup")]
             if not ready:
                 break
-            ready.sort(key=lambda m: _rank(m, cfg))
+            ready.sort(key=lambda m: _rank(m, cfg, due))
             m = ready[0]
             if _post_one(m, platform, m.get("variant", 1), cfg):   # counts its own failed tries
                 posted += 1
