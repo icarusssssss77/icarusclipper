@@ -131,7 +131,7 @@ min_score = 7                 # 1-10; only clips Gemini scores at least this get
 gameplay_only = true          # gameplay clips come first; clips without the game on screen are rejected...
 backup_when_no_gameplay = true  # ...unless they're clearly about GTA 6: those are kept as backups and posted
 backup_min_score = 8          #    only when a run has no gameplay clip ready. Backups need this score.
-priority_channels = ["xqc"]   # ONE-RUN EXPERIMENT (Nov 20 night): post an xQc clip first to compare views with Kai/Speed
+priority_channels = ["kaicenat", "ishowspeed"]   # their approved clips are posted before anyone else's
 max_age_hours = 24            # approved clips older than this are not posted (last night's clips can fill the next afternoon)
 
 [safety]
