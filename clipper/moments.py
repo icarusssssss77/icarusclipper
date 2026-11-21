@@ -77,8 +77,11 @@ Return JSON: {"clips":[{"id":int,"keep":bool,"start":number,"end":number,"score"
  "hooks":[{"structure":str,"text":str}],"title":str,"caption":str,"hashtags":[str]}]}
 
 Rules:
-- start/end: absolute seconds inside that candidate's window, MIN-MAX seconds long. Open on the
-  setup or a face mid-reaction; END right after the payoff/result, never trailing off.
+- start/end: absolute seconds inside that candidate's window, MIN-MAX seconds long; aim for 18-35
+  seconds (shorter clips get watched to the end, which is what the Shorts feed rewards).
+  THE FIRST 2 SECONDS decide whether a viewer swipes away: start exactly ON an arresting line, shout,
+  crash or reaction - never on silence, "um", walking, loading, or a slow lead-in. Cut the lead-in.
+  END right after the payoff/result so the clip loops cleanly, never trailing off.
 - score 1-10: works for a viewer who never saw the stream (chaos, fails, clutch, funny lines = high;
   quiet driving, menus, ad breaks, filler = low). keep=false if it is not a real moment.
   Also score high: the streamer reacting to GTA 6 music / the radio / a song, spotting a real-world
@@ -113,8 +116,9 @@ Return JSON: {"clips":[{"id":int,"keep":bool,"start":number,"end":number,"score"
  "hooks":[{"structure":str,"text":str}],"title":str,"caption":str,"hashtags":[str]}]}
 
 Rules:
-- start/end: absolute seconds inside that candidate's window, MIN-MAX seconds long. Open on the setup
-  or a face mid-reaction; END right after the payoff, never trailing off.
+- start/end: absolute seconds inside that candidate's window, MIN-MAX seconds long; aim for 18-35
+  seconds. THE FIRST 2 SECONDS decide whether a viewer swipes away: start exactly ON an arresting line,
+  sound or reaction, never on silence or a slow lead-in. END right after the payoff so it loops cleanly.
 - score 1-10: how likely a stranger who never saw the stream watches to the end and shares it.
 - hooks: 5 options, 3-7 words, shown on screen for the whole clip; tease the moment, never spoil it.
   Name the streamer when it helps. Normal sentence case. No vague hype ("insane moment", "wait for it").

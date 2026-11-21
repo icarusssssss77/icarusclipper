@@ -53,7 +53,8 @@ def items(status: str | None = None) -> list[dict]:
 REVIEW_PROMPT = """You are the final quality check before this vertical GTA 6 clip is posted to
 YouTube Shorts / TikTok / Reels on a clipping channel. Watch the whole video.
 
-Reject (approve=false) if ANY of these: loading/menu/pause/map screens most of the time, an ad break
+Reject (approve=false) if ANY of these: a dead opening (in the first 2 seconds nothing is said, nothing
+moves and nobody reacts - most viewers swipe away right there), loading/menu/pause/map screens most of the time, an ad break
 or "commercial break" slate, black or frozen video, nothing really happens, it cuts off mid-action
 before the payoff, captions badly wrong, hateful/sexual content, slurs, real personal info on screen
 (addresses, phone numbers, donation alerts with full names), or the title/hook promises something that
@@ -80,7 +81,7 @@ HOOKS
 
 best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
 
-Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger watches to the end),
+Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger keeps watching past the first 2 seconds AND to the end),
 "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
@@ -89,7 +90,8 @@ REVIEW_PROMPT_ANY = """You are the final quality check before this vertical clip
 to YouTube Shorts on a clipping channel. This clip is NOT from a GTA stream; it is only wanted if it has
 real viral potential. Watch the whole video.
 
-Reject (approve=false) if ANY of these: nothing really happens, ordinary chatting or reading chat, an ad
+Reject (approve=false) if ANY of these: a dead opening (nothing said, moving or reacting in the first
+2 seconds), nothing really happens, ordinary chatting or reading chat, an ad
 break, black or frozen video, it cuts off before the payoff, captions badly wrong, hateful/sexual
 content, slurs, real personal info on screen, the streamer's face is not visible, or the title/hook
 promises something that does not happen (misleading titles get channels flagged as spam).

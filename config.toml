@@ -70,7 +70,7 @@ keyword_weight = 2.0
 
 [clip]
 min_len = 15
-max_len = 60
+max_len = 45                  # shorter clips are watched to the end more often (the Shorts feed rewards that)
 clips_per_vod = 3             # best clips kept per streamer per run
 vod_candidates = 10
 min_gap_seconds = 40
@@ -131,7 +131,8 @@ any_game_channels = ["kaicenat", "ishowspeed"]   # recorded even when not on GTA
 
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
 enabled = true
-min_score = 7                 # 1-10; only clips Gemini scores at least this get posted
+min_score = 8                 # 1-10; only clips Gemini scores at least this get posted. 8, not 7: the channel
+                              # can only upload about 9 a day, so only the strongest go out
 gameplay_only = true          # gameplay is the main content; clips without the game on screen are rejected...
 backup_when_no_gameplay = true  # ...unless they're clearly about GTA 6 ("variety" clips: music reactions,
 backup_min_score = 8          #    cultural references, viral talk). Variety clips need this AI score.
