@@ -102,7 +102,7 @@ Rules:
 
 def _snap(words: list[dict], start: float, end: float, lo: float, hi: float, cfg: dict) -> tuple[float, float]:
     mn, mx = cfg["clip"]["min_len"], cfg["clip"]["max_len"]
-    start, end = max(lo, start), min(hi, end)
+    start, end = min(max(lo, start), max(lo, hi - mn)), min(hi, end)
     starts = [w["start"] for w in words if abs(w["start"] - start) <= 3]
     if starts:
         start = min(starts, key=lambda t: abs(t - start)) - 0.15
@@ -162,6 +162,10 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
         try:
             start, end = float(a["start"]), float(a["end"])
         except (TypeError, KeyError, ValueError):
+            start, end = it["peak"] - 20, it["peak"] + 10
+        if not (it["lo"] - 2 <= start < end <= it["hi"] + 2):
+            # the AI answered with times outside this candidate's window (or end before start):
+            # cut around the signal peak instead of losing the moment
             start, end = it["peak"] - 20, it["peak"] + 10
         start, end = _snap(it["words"], start, end, it["lo"], it["hi"], cfg)
         in_clip = [w for w in it["words"] if w["start"] >= start and w["end"] <= end]
