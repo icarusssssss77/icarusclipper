@@ -21,7 +21,23 @@ def _video_id(result: str) -> str | None:
     return result.rsplit("/", 1)[-1] if "youtube.com/shorts/" in result else None
 
 
+def _views_key(ids: list[str], key: str) -> dict[str, int]:
+    """Public view counts with a plain API key (GitHub secret YOUTUBE_API_KEY): 1 quota unit per 50 videos."""
+    import requests
+    out: dict[str, int] = {}
+    for i in range(0, len(ids), 50):
+        r = requests.get("https://www.googleapis.com/youtube/v3/videos", timeout=30,
+                         params={"part": "statistics", "id": ",".join(ids[i:i + 50]), "key": key})
+        r.raise_for_status()
+        for it in r.json().get("items", []):
+            out[it["id"]] = int(it["statistics"].get("viewCount", 0))
+    return out
+
+
 def _views_api(ids: list[str]) -> dict[str, int]:
+    import os
+    if os.environ.get("YOUTUBE_API_KEY", "").strip():
+        return _views_key(ids, os.environ["YOUTUBE_API_KEY"].strip())
     from googleapiclient.discovery import build
 
     from .uploaders.youtube import _creds

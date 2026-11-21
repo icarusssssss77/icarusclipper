@@ -66,6 +66,7 @@ jobs:
       - name: Clip + post
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}   # optional: phone notifications (see clipper/notify.py)
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}   # optional: view counts for the views report
         run: python -m clipper batch
 
       - name: Notify on failure
