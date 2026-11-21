@@ -124,6 +124,7 @@ min_new_minutes = 10          # skip a channel if fewer new minutes than this si
 live_record_minutes = 15      # live channels are recorded this long each run (shorter = faster runs)
 only_gta = true               # only record channels whose game/title says GTA
 posts_per_run = 1             # per platform per run: 13 hourly runs x 1 = 13 Shorts/day
+skip_hours_after_dud = 3      # a channel whose clips were all junk (AI score 3 or less) is skipped this long
 
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
 enabled = true

@@ -137,6 +137,9 @@ def run(cfg: dict) -> None:
         name, url, twitch = parse_channel(ch)
         if name in seen:
             continue
+        if float(state.get("skip_until", {}).get(name, 0)) > time.time():
+            log.info("[%s] skipped (nothing usable last time)", name)
+            continue
         meta = live_info(url)
         if meta is not None and b.get("only_gta", True) and not is_gta(meta):
             # live on another game: don't spend the run clipping its VOD either
@@ -179,7 +182,14 @@ def run(cfg: dict) -> None:
 
     for ch, f, link in sources:
         try:
-            pipeline.process_vod(str(f), cfg, ch, None, source_label=link)
+            metas = pipeline.process_vod(str(f), cfg, ch, None, source_label=link)
+            # nothing usable at all (not in-game, AFK, sleeping): don't spend the next runs on this channel
+            if metas and all(m.get("status") == "rejected" and int((m.get("ai_review") or {}).get("score", 10)) <= 3
+                             for m in metas):
+                hours = b.get("skip_hours_after_dud", 3)
+                state.setdefault("skip_until", {})[ch] = time.time() + hours * 3600
+                STATE.write_text(json.dumps(state, indent=2))
+                log.info("[%s] nothing usable this run - skipping this channel for %s h", ch, hours)
         except Exception as e:
             log.exception("[%s] processing failed: %s", ch, e)
         f.unlink(missing_ok=True)
