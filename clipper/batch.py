@@ -130,6 +130,8 @@ def run(cfg: dict) -> None:
     sources: list[tuple[str, Path, str]] = []          # (channel, file, credit link)
     to_record: list[tuple[str, str]] = []              # (channel, live url)
     seen: set[str] = set()
+    any_game = {c.lower() for c in b.get("any_game_channels", [])}
+    topics: dict[str, str] = {}                        # channel -> "any" when it is not a GTA stream
 
     for ch in cfg["stream"]["channels"]:               # list order = priority (biggest first)
         if len(sources) + len(to_record) >= b["max_channels"]:
@@ -142,9 +144,13 @@ def run(cfg: dict) -> None:
             continue
         meta = live_info(url)
         if meta is not None and b.get("only_gta", True) and not is_gta(meta):
-            # live on another game: don't spend the run clipping its VOD either
-            log.info("[%s] live but not playing GTA (%s)", name, meta.get("category") or meta.get("title"))
-            continue
+            if name in any_game:   # top streamers: viral non-GTA moments (music reactions, IRL) are wanted too
+                topics[name] = "any"
+                log.info("[%s] live, not on GTA (%s) - recording for viral moments", name,
+                         meta.get("category") or meta.get("title"))
+            else:   # live on another game: don't spend the run clipping its VOD either
+                log.info("[%s] live but not playing GTA (%s)", name, meta.get("category") or meta.get("title"))
+                continue
         if twitch and meta is None:   # just-ended Twitch broadcast: clip the saved VOD
             # (while a stream is still live its VOD download hangs, so live channels are recorded instead)
             vod = latest_vod(name)
@@ -182,7 +188,7 @@ def run(cfg: dict) -> None:
 
     for ch, f, link in sources:
         try:
-            metas = pipeline.process_vod(str(f), cfg, ch, None, source_label=link)
+            metas = pipeline.process_vod(str(f), cfg, ch, None, source_label=link, topic=topics.get(ch, "gta"))
             # nothing usable at all (not in-game, AFK, sleeping): don't spend the next runs on this channel
             if metas and all(m.get("status") == "rejected" and int((m.get("ai_review") or {}).get("score", 10)) <= 3
                              for m in metas):

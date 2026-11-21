@@ -34,7 +34,7 @@ def duration(src: Path) -> float:
     return int(h) * 3600 + int(m) * 60 + float(sec)
 
 
-def render_clip(src: Path, clip: dict, cfg: dict, channel: str, source: str) -> dict:
+def render_clip(src: Path, clip: dict, cfg: dict, channel: str, source: str, topic: str = "gta") -> dict:
     clip_id = time.strftime("%Y%m%d-%H%M%S-") + uuid.uuid4().hex[:4]
     d = review.QUEUE / clip_id
     d.mkdir(parents=True, exist_ok=True)
@@ -60,6 +60,7 @@ def render_clip(src: Path, clip: dict, cfg: dict, channel: str, source: str) -> 
         "score": clip["score"], "signal": clip["signal"], "ai": clip["ai"], "facecam": cam,
         "hooks": clip["hooks"], "title": clip["title"], "caption": clip["caption"],
         "hashtags": clip["hashtags"], "transcript": " ".join(w["word"] for w in words), "posts": {},
+        "topic": topic,
     }
     review.save(meta)
     log.info("queued %s  score %s  '%s'", clip_id, clip["score"], clip["title"])
@@ -81,7 +82,7 @@ def fetch(url: str, work: Path, section: str | None) -> tuple[Path, Path | None,
 
 
 def process_vod(inp: str, cfg: dict, channel: str | None, section: str | None,
-                source_label: str | None = None) -> list[dict]:
+                source_label: str | None = None, topic: str = "gta") -> list[dict]:
     if Path(inp).exists():
         src, info, chat = Path(inp), None, None
         channel = channel or Path(inp).stem
@@ -106,7 +107,7 @@ def process_vod(inp: str, cfg: dict, channel: str | None, section: str | None,
     c = cfg["clip"]
     cands = moments.peaks(total, c["vod_candidates"], c["min_gap_seconds"])
     log.info("%d candidate moments, asking AI to cut + hook them", len(cands))
-    clips = moments.package(src, cands, cfg, channel, length)
+    clips = moments.package(src, cands, cfg, channel, length, topic)
     keep = [x for x in clips if x["score"] >= 6][: c["clips_per_vod"]]
     if len(keep) < 3:
         keep = clips[: max(3, len(keep))]
@@ -117,7 +118,7 @@ def process_vod(inp: str, cfg: dict, channel: str | None, section: str | None,
             log.warning("skipping clip with a bad cut (%.1f-%.1f s)", cl["start"], cl["end"])
             continue
         try:
-            m = render_clip(src, cl, cfg, channel, source_label or inp)
+            m = render_clip(src, cl, cfg, channel, source_label or inp, topic)
             if cfg["auto"]["enabled"]:
                 m = review.auto_review(m["id"], cfg, src)
             metas.append(m)

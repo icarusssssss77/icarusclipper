@@ -83,14 +83,15 @@ def upload(video: Path, meta: dict, cfg: dict) -> str:
     tags = meta["hashtags"]
     # Vertical + under 3 min is a Short automatically; no #Shorts needed. The first 3 hashtags
     # in the description (#GTA6 #GTAVI #GTA) show above the title.
-    search_tags = list(dict.fromkeys(tags + ["GTA 6", "GTA VI", "Grand Theft Auto 6", "GTA 6 gameplay",
-                                             "GTA 6 clips", "Vice City", meta.get("channel", "")]))
+    gta = meta.get("topic") != "any"   # non-GTA variety clips must not carry GTA tags (misleading metadata)
+    extra = ["GTA 6", "GTA VI", "Grand Theft Auto 6", "GTA 6 gameplay", "GTA 6 clips", "Vice City"] if gta else []
+    search_tags = list(dict.fromkeys(tags + extra + [meta.get("channel", "")]))
     body = {
         "snippet": {
             "title": meta["title"][:100],
             "description": meta["caption"].strip() + "\n\n" + " ".join(f"#{t}" for t in tags),
             "tags": [t for t in search_tags if t][:30],
-            "categoryId": "20",  # Gaming
+            "categoryId": "20" if gta else "24",  # Gaming / Entertainment
         },
         "status": {
             "privacyStatus": cfg["upload"]["youtube_privacy"],

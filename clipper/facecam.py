@@ -43,7 +43,8 @@ def find(src: Path, start: float, duration: float, cfg: dict, channel: str):
     cache_path = _cache_file()
     cache = json.loads(cache_path.read_text()) if cache_path.exists() else {}
     hit = cache.get(channel)
-    if hit and time.time() - hit["at"] < 3 * 3600:
+    # a found cam is trusted for 3 h; "no cam" only for 15 min, so a missed detection is retried soon
+    if hit and time.time() - hit["at"] < (3 * 3600 if hit["box"] else 900):
         return tuple(hit["box"]) if hit["box"] else None
 
     box = None

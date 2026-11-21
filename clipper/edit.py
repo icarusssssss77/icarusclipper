@@ -48,7 +48,7 @@ def _layout(cfg: dict, facecam) -> tuple[str, int]:
     W, H = e["width"], e["height"]
     mode = e["layout"]
     if mode == "auto":   # full-screen on phones: face on top if there is one, else zoomed gameplay
-        mode = "facecam-stack" if facecam else "center-crop"
+        mode = "facecam-stack" if facecam else e.get("no_cam_layout", "blur-fit")
     if mode == "facecam-stack" and facecam:
         cx, cy, cw, ch = facecam
         cam_h = int(H * 0.36) // 2 * 2

@@ -85,6 +85,32 @@ Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_r
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
 
+REVIEW_PROMPT_ANY = """You are the final quality check before this vertical clip of a big streamer is posted
+to YouTube Shorts on a clipping channel. This clip is NOT from a GTA stream; it is only wanted if it has
+real viral potential. Watch the whole video.
+
+Reject (approve=false) if ANY of these: nothing really happens, ordinary chatting or reading chat, an ad
+break, black or frozen video, it cuts off before the payoff, captions badly wrong, hateful/sexual
+content, slurs, real personal info on screen, the streamer's face is not visible, or the title/hook
+promises something that does not happen (misleading titles get channels flagged as spam).
+
+Title: TITLE
+
+Set "kind": "music_reaction" (reacting to a song, an artist, dancing or singing along - note the country
+or culture if it is foreign to the streamer), "culture" (food, language, traditions, meeting people
+abroad), "reaction" (a big genuine reaction to something else), "talk", or "other".
+Set "music_plays": true if a commercial song is clearly audible for most of the clip.
+
+Hooks (the white banner text; the video shows hook 1, the others are alternatives):
+HOOKS
+
+best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
+
+Return JSON: {"approve": bool, "kind": str, "music_plays": bool, "score": 1-10 (how likely a stranger
+watches to the end and shares it), "best_hook": 1-3, "thumbnail_second": number, "problems": [short
+strings], "reason": "one sentence"}"""
+
+
 def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
     meta = load(clip_id)
     src = QUEUE / clip_id / "v1.mp4"
@@ -94,8 +120,10 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
                         "-vf", "scale=360:-2,fps=15", "-c:v", "libx264", "-preset", "veryfast", "-crf", "32",
                         "-c:a", "aac", "-b:a", "48k", "-ac", "1", str(proxy)], check=True)
         hooks = "\n".join(f"{i}. {h['text']}" for i, h in enumerate(meta["hooks"], 1))
+        any_topic = meta.get("topic") == "any"
         verdict = llm.watch_video(cfg, proxy.read_bytes(),
-                                  REVIEW_PROMPT.replace("HOOKS", hooks).replace("TITLE", str(meta.get("title", ""))))
+                                  (REVIEW_PROMPT_ANY if any_topic else REVIEW_PROMPT)
+                                  .replace("HOOKS", hooks).replace("TITLE", str(meta.get("title", ""))))
     meta["ai_review"] = verdict
     if not verdict:
         meta["status"] = "pending"          # never auto-post without an AI look
@@ -106,7 +134,14 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
             ok = False
             verdict.setdefault("problems", []).append("no AI-written hooks (AI was unavailable)")
         meta["tier"] = "gameplay"
-        if ok and cfg["auto"].get("gameplay_only", True) and verdict.get("gameplay") is not True:
+        if any_topic:
+            # non-GTA clip from a top streamer: only as a variety clip, only the viral kinds, higher score
+            meta["tier"] = "backup"
+            if ok and not (str(verdict.get("kind")) in ("music_reaction", "culture", "reaction")
+                           and int(verdict.get("score", 0)) >= cfg["auto"].get("backup_min_score", 8)):
+                ok = False
+                verdict["reason"] = "not viral enough for a non-GTA clip: " + str(verdict.get("reason", ""))
+        elif ok and cfg["auto"].get("gameplay_only", True) and verdict.get("gameplay") is not True:
             # No game on screen. Keep it as a "variety" clip (tier "backup") if it is about GTA 6 and
             # scores higher: music reactions, cultural references, viral talk. Variety clips fill runs
             # with no gameplay clip ready, and every [auto] variety_every-th post (see _variety_due).
