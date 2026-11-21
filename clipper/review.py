@@ -86,7 +86,7 @@ HOOKS
 best_hook = among the hooks that are TRUE to what happens, the one that makes a scroller most curious
 without spoiling the payoff.
 
-Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger keeps watching past the first 2 seconds AND to the end),
+Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger watches to the end),
 "new_title": str, "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
