@@ -190,6 +190,19 @@ def _can_post(cfg: dict, platform: str, respect_gap: bool = True) -> str | None:
     return None
 
 
+def _limit_error(err: str) -> bool:
+    """The platform refused because of an upload limit (API quota, or the channel's own daily
+    upload limit) - nothing wrong with the clip, so it must not use up the clip's tries."""
+    e = str(err).lower()
+    return any(k in e for k in ("quota", "429", "ratelimitexceeded", "uploadlimitexceeded",
+                                "exceeded the number of videos"))
+
+
+def _retryable(m: dict, platform: str) -> bool:
+    p = m["posts"].get(platform, {})
+    return p.get("tries", 0) < 2 or _limit_error(p.get("error", ""))
+
+
 _BLOCKED: set[str] = set()   # platforms that refused an upload for quota reasons during this run
 
 
@@ -202,7 +215,7 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
         result = UPLOADERS[platform](video, meta, cfg)
     except Exception as e:
         err = str(e)
-        quota = "quota" in err.lower() or "429" in err or "rateLimitExceeded" in err
+        quota = _limit_error(err)
         tries = meta["posts"].get(platform, {}).get("tries", 0) + (0 if quota else 1)   # a full quota isn't the clip's fault
         meta["posts"][platform] = {"ok": False, "error": err[:500], "at": time.time(), "tries": tries}
         log.error("[%s] %s upload FAILED: %s", meta["id"], platform, err[:300])
@@ -245,7 +258,7 @@ def post_due(cfg: dict) -> None:
         if _can_post(cfg, platform) or platform in _BLOCKED:
             continue
         for m in ready:
-            if not m["posts"].get(platform, {}).get("ok") and m["posts"].get(platform, {}).get("tries", 0) < 2:
+            if not m["posts"].get(platform, {}).get("ok") and _retryable(m, platform):
                 m["posts"].setdefault(platform, {})
                 _post_one(m, platform, m.get("variant", 1), cfg)   # counts its own failed tries
                 break
@@ -264,7 +277,7 @@ def post_batch(cfg: dict, n: int, done: dict | None = None, backups: bool = True
             due = _variety_due(cfg, platform)
             ready = [m for m in items("approved") if time.time() - m["created"] < max_age
                      and not m["posts"].get(platform, {}).get("ok")
-                     and m["posts"].get(platform, {}).get("tries", 0) < 2
+                     and _retryable(m, platform)
                      and (backups or due or m.get("tier") != "backup")]
             if not ready:
                 break
