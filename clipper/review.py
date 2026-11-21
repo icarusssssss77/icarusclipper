@@ -57,10 +57,14 @@ Reject (approve=false) if ANY of these: a dead opening (in the first 2 seconds n
 moves and nobody reacts - most viewers swipe away right there), loading/menu/pause/map screens most of the time, an ad break
 or "commercial break" slate, black or frozen video, nothing really happens, it cuts off mid-action
 before the payoff, captions badly wrong, hateful/sexual content, slurs, real personal info on screen
-(addresses, phone numbers, donation alerts with full names), or the title/hook promises something that
-does not happen in the clip (misleading titles get channels flagged as spam).
+(addresses, phone numbers, donation alerts with full names), or EVERY hook promises something that
+does not happen in the clip.
 
 Title: TITLE
+The title and hooks were written from the transcript alone, so they are sometimes wrong about what is
+on screen. A wrong TITLE is not a reason to reject a good clip: put an accurate replacement in
+"new_title" (under 70 characters, curiosity-first, names the streamer, no spoiler, at most 1 emoji, and
+it must say GTA 6 only if this really is GTA 6). If the title is already accurate, "new_title": "".
 
 GAMEPLAY RULE: gameplay = GTA 6 game footage is clearly visible on screen (the game world, the
 player's character or vehicle, the HUD) for MOST of the clip, and the key moment happens IN the game.
@@ -79,10 +83,11 @@ something else about GTA 6); "talk" (opinions, theories, stories about GTA 6); o
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
-best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
+best_hook = among the hooks that are TRUE to what happens, the one that makes a scroller most curious
+without spoiling the payoff.
 
 Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger keeps watching past the first 2 seconds AND to the end),
-"best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
+"new_title": str, "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
 
@@ -93,10 +98,13 @@ real viral potential. Watch the whole video.
 Reject (approve=false) if ANY of these: a dead opening (nothing said, moving or reacting in the first
 2 seconds), nothing really happens, ordinary chatting or reading chat, an ad
 break, black or frozen video, it cuts off before the payoff, captions badly wrong, hateful/sexual
-content, slurs, real personal info on screen, the streamer's face is not visible, or the title/hook
-promises something that does not happen (misleading titles get channels flagged as spam).
+content, slurs, real personal info on screen, the streamer's face is not visible, or EVERY hook
+promises something that does not happen.
 
 Title: TITLE
+The title and hooks were written from the transcript alone. A wrong TITLE is not a reason to reject a
+good clip: put an accurate replacement in "new_title" (under 70 characters, curiosity-first, names the
+streamer, no spoiler, no GTA wording). If the title is already accurate, "new_title": "".
 
 Set "kind": "music_reaction" (reacting to a song, an artist, dancing or singing along - note the country
 or culture if it is foreign to the streamer), "culture" (food, language, traditions, meeting people
@@ -106,10 +114,11 @@ Set "music_plays": true if a commercial song is clearly audible for most of the 
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
-best_hook = the hook that makes a scroller most curious WITHOUT spoiling the payoff.
+best_hook = among the hooks that are TRUE to what happens, the one that makes a scroller most curious
+without spoiling the payoff.
 
 Return JSON: {"approve": bool, "kind": str, "music_plays": bool, "score": 1-10 (how likely a stranger
-watches to the end and shares it), "best_hook": 1-3, "thumbnail_second": number, "problems": [short
+watches to the end and shares it), "new_title": str, "best_hook": 1-3, "thumbnail_second": number, "problems": [short
 strings], "reason": "one sentence"}"""
 
 
@@ -155,6 +164,10 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
             else:
                 ok = False
                 verdict["reason"] = "no gameplay on screen: " + str(verdict.get("reason", ""))
+        new_title = str(verdict.get("new_title") or "").strip()
+        if ok and 8 <= len(new_title) <= 100 and new_title != meta.get("title"):
+            log.info("[%s] title corrected: %r -> %r", clip_id, meta.get("title"), new_title)
+            meta["title_written"], meta["title"] = meta.get("title"), new_title[:90]
         meta["kind"] = str(verdict.get("kind") or ("gameplay" if verdict.get("gameplay") else "other"))[:30]
         meta["status"] = "approved" if ok else "rejected"
         best = int(verdict.get("best_hook", 1) or 1)

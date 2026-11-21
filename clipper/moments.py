@@ -94,6 +94,9 @@ Rules:
   relatable ("When your friend has one job"), withheld_negation ("Nobody expected this getaway").
   Name the streamer when it helps. Normal sentence case (one word in caps for emphasis is OK, never
   all caps). No vague hype ("insane moment", "wait for it"), no announcement wording ("new", "out now").
+- TRUTH: hooks and the title may only describe what the transcript shows really happens in the clip.
+  Never invent an event, object or outcome to make it sound better - a reviewer watches the video and
+  throws away clips whose hook is not true.
 - title: under 70 characters, curiosity-first like the hooks (no spoilers), names the streamer and GTA 6,
   at most 1 emoji, no hashtags.
 - caption: the YouTube/TikTok description, 3 short lines:
