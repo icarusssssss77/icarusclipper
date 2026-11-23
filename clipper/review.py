@@ -57,10 +57,15 @@ YouTube Shorts / TikTok / Reels on a clipping channel. Watch the whole video.
 Reject (approve=false) if ANY of these: a dead opening (in the first 2 seconds nothing is said, nothing
 moves and nobody reacts - most viewers swipe away right there), loading/menu/pause/map screens most of the time, an ad break
 or "commercial break" slate, black or frozen video, nothing really happens, it cuts off mid-action
-before the payoff, captions badly wrong, hateful content, explicit sexual content or nudity (flirting,
-romance, kissing and suggestive jokes are fine), slurs, real personal info on screen
+before the payoff, captions badly wrong, hateful content, explicit sexual content (nudity, sex acts,
+strip-club or lap-dance scenes), anyone who looks under 18 shown in a sexual way, a clip that is mainly
+the camera lingering on the body of a real person who is not part of the stream, slurs, real personal
+info on screen
 (addresses, phone numbers, donation alerts with full names), or EVERY hook promises something that
 does not happen in the clip.
+
+Suggestive content is WANTED, not a reason to reject: flirting, romance, kissing, attractive game
+characters, bikinis, beach / pool / club scenes, and the streamer's reaction to them.
 
 Title: TITLE
 The title and hooks were written from the transcript alone, so they are sometimes wrong about what is
@@ -103,7 +108,9 @@ real viral potential. Watch the whole video.
 Reject (approve=false) if ANY of these: a dead opening (nothing said, moving or reacting in the first
 2 seconds), nothing really happens, ordinary chatting or reading chat, an ad
 break, black or frozen video, it cuts off before the payoff, captions badly wrong, hateful content,
-explicit sexual content or nudity (flirting, romance and suggestive jokes are fine), slurs, real personal info on screen, the streamer's face is not visible, or EVERY hook
+explicit sexual content (nudity, sex acts; flirting, romance, bikinis and suggestive jokes are fine),
+anyone who looks under 18 shown in a sexual way, a clip that is mainly the camera lingering on the body
+of a real person who is not part of the stream, slurs, real personal info on screen, the streamer's face is not visible, or EVERY hook
 promises something that does not happen.
 
 Title: TITLE
@@ -135,7 +142,9 @@ def _themes_line(cfg: dict) -> str:
         return 'Set "theme": false.'
     return ('Set "theme": true if the clip is mainly about one of the channel\'s priority themes ('
             + ", ".join(themes) + "): flirting or rizzing someone, a date, a love or romance scene, a couple "
-            "moment, relationship or therapy-style talk. Otherwise false.")
+            "moment, relationship or therapy-style talk, or the streamer reacting to an attractive character, "
+            "a bikini / beach / club scene. Otherwise false. If you write a new_title for such a clip keep it "
+            "clean and playful: no explicit sexual words or body-part words.")
 
 
 _OTHER_GAME = re.compile(r"\bGTA ?(5|V|Online|RP)\b|\bFiveM\b|\bRed Dead\b", re.I)

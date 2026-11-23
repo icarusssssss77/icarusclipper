@@ -193,7 +193,10 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
                    "Look for these first: flirting with or 'rizzing' a character or person, dates, love and romance "
                    "scenes, couple moments, jealousy, breakups, relationship advice or therapy-style talk. Give such a "
                    "moment +2 on its score (max 10), and write its hooks and title around that angle - only if it "
-                   "really is what happens. Keep it suggestive at most: no explicit sexual content or nudity.")
+                   "really is what happens. Also wanted: the streamer reacting to an attractive in-game character, a "
+                   "bikini / beach / pool / club scene, or flirty outfits. Keep it suggestive at most: no nudity, no "
+                   "sex acts, no strip-club scenes. Titles and hooks stay clean and playful (no explicit sexual "
+                   "words, no body-part words) - explicit titles get Shorts age-restricted.")
     answer = llm.ask_json(cfg, system, prompt) or {}
     by_id = {c.get("id"): c for c in answer.get("clips", []) if isinstance(c, dict)}
 
