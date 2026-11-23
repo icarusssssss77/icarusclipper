@@ -10,6 +10,7 @@ If Gemini can't review a clip, it is never auto-posted.
 from __future__ import annotations
 
 import json
+import re
 import logging
 import shutil
 import subprocess
@@ -73,6 +74,8 @@ sitting/lying in their room, reading chat, reacting to other videos, watching tr
 ABOUT GTA 6 without playing it - even if the topic is GTA 6. Set "gameplay" honestly.
 Also set "gta_related": true only if the clip is clearly about GTA 6 (playing it, or the streamer
 talking about / reacting to GTA 6 specifically). Other games or random chatting = false.
+Set "is_gta6": false if the game on screen is a different game (GTA 5 / GTA Online / FiveM roleplay,
+Red Dead, Call of Duty, anything that is not GTA 6); true only when it really is GTA 6.
 Set "trailer_reaction": true if the clip mostly shows an official trailer or someone else's video
 (the streamer watching/reacting to it) rather than their own stream.
 Set "kind" to the best fit: "gameplay"; "music_reaction" (the streamer reacting to GTA 6 music, the radio
@@ -86,7 +89,7 @@ HOOKS
 best_hook = among the hooks that are TRUE to what happens, the one that makes a scroller most curious
 without spoiling the payoff.
 
-Return JSON: {"approve": bool, "gameplay": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger watches to the end),
+Return JSON: {"approve": bool, "gameplay": bool, "is_gta6": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger watches to the end),
 "new_title": str, "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
@@ -122,6 +125,9 @@ watches to the end and shares it), "new_title": str, "best_hook": 1-3, "thumbnai
 strings], "reason": "one sentence"}"""
 
 
+_OTHER_GAME = re.compile(r"\bGTA ?(5|V|Online|RP)\b|\bFiveM\b|\bRed Dead\b", re.I)
+
+
 def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
     meta = load(clip_id)
     src = QUEUE / clip_id / "v1.mp4"
@@ -152,6 +158,9 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
                            and int(verdict.get("score", 0)) >= cfg["auto"].get("backup_min_score", 8)):
                 ok = False
                 verdict["reason"] = "not viral enough for a non-GTA clip: " + str(verdict.get("reason", ""))
+        elif ok and (verdict.get("is_gta6") is False or _OTHER_GAME.search(str(verdict.get("new_title") or ""))):
+            ok = False                      # a GTA 6 channel with GTA 6 tags: another game would be mislabelled
+            verdict["reason"] = "not GTA 6: " + str(verdict.get("reason", ""))
         elif ok and cfg["auto"].get("gameplay_only", True) and verdict.get("gameplay") is not True:
             # No game on screen. Keep it as a "variety" clip (tier "backup") if it is about GTA 6 and
             # scores higher: music reactions, cultural references, viral talk. Variety clips fill runs
@@ -249,6 +258,8 @@ def _limit_error(err: str) -> bool:
 
 
 def _retryable(m: dict, platform: str) -> bool:
+    if m.get("topic") != "any" and _OTHER_GAME.search(str(m.get("title", ""))):
+        return False   # approved before the "is it really GTA 6" rule: never post it with GTA 6 tags
     p = m["posts"].get(platform, {})
     return p.get("tries", 0) < 2 or _limit_error(p.get("error", ""))
 
