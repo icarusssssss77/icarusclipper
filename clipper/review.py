@@ -57,7 +57,8 @@ YouTube Shorts / TikTok / Reels on a clipping channel. Watch the whole video.
 Reject (approve=false) if ANY of these: a dead opening (in the first 2 seconds nothing is said, nothing
 moves and nobody reacts - most viewers swipe away right there), loading/menu/pause/map screens most of the time, an ad break
 or "commercial break" slate, black or frozen video, nothing really happens, it cuts off mid-action
-before the payoff, captions badly wrong, hateful/sexual content, slurs, real personal info on screen
+before the payoff, captions badly wrong, hateful content, explicit sexual content or nudity (flirting,
+romance, kissing and suggestive jokes are fine), slurs, real personal info on screen
 (addresses, phone numbers, donation alerts with full names), or EVERY hook promises something that
 does not happen in the clip.
 
@@ -83,6 +84,7 @@ or soundtrack, or a song about GTA 6); "culture" (a GTA 6 cultural reference: re
 memes, Miami / Vice City culture, parodies, things the game is referencing); "reaction" (reacting to
 something else about GTA 6); "talk" (opinions, theories, stories about GTA 6); or "other".
 
+THEMES_LINE
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
@@ -90,7 +92,7 @@ best_hook = among the hooks that are TRUE to what happens, the one that makes a 
 without spoiling the payoff.
 
 Return JSON: {"approve": bool, "gameplay": bool, "is_gta6": bool, "gta_related": bool, "trailer_reaction": bool, "kind": str, "score": 1-10 (how likely a stranger watches to the end),
-"new_title": str, "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
+"theme": bool, "new_title": str, "best_hook": 1-3, "thumbnail_second": number (the most eye-catching moment, e.g. a big reaction or
 crash, in seconds from the start), "problems": [short strings], "reason": "one sentence"}"""
 
 
@@ -100,8 +102,8 @@ real viral potential. Watch the whole video.
 
 Reject (approve=false) if ANY of these: a dead opening (nothing said, moving or reacting in the first
 2 seconds), nothing really happens, ordinary chatting or reading chat, an ad
-break, black or frozen video, it cuts off before the payoff, captions badly wrong, hateful/sexual
-content, slurs, real personal info on screen, the streamer's face is not visible, or EVERY hook
+break, black or frozen video, it cuts off before the payoff, captions badly wrong, hateful content,
+explicit sexual content or nudity (flirting, romance and suggestive jokes are fine), slurs, real personal info on screen, the streamer's face is not visible, or EVERY hook
 promises something that does not happen.
 
 Title: TITLE
@@ -111,9 +113,11 @@ streamer, no spoiler, no GTA wording). If the title is already accurate, "new_ti
 
 Set "kind": "music_reaction" (reacting to a song, an artist, dancing or singing along - note the country
 or culture if it is foreign to the streamer), "culture" (food, language, traditions, meeting people
-abroad), "reaction" (a big genuine reaction to something else), "talk", or "other".
+abroad), "romance" (dating, rizz and flirting, couples, love, relationship or therapy-style talk),
+"reaction" (a big genuine reaction to something else), "talk", or "other".
 Set "music_plays": true if a commercial song is clearly audible for most of the clip.
 
+THEMES_LINE
 Hooks (the white banner text; the video shows hook 1, the others are alternatives):
 HOOKS
 
@@ -121,8 +125,17 @@ best_hook = among the hooks that are TRUE to what happens, the one that makes a 
 without spoiling the payoff.
 
 Return JSON: {"approve": bool, "kind": str, "music_plays": bool, "score": 1-10 (how likely a stranger
-watches to the end and shares it), "new_title": str, "best_hook": 1-3, "thumbnail_second": number, "problems": [short
+watches to the end and shares it), "theme": bool, "new_title": str, "best_hook": 1-3, "thumbnail_second": number, "problems": [short
 strings], "reason": "one sentence"}"""
+
+
+def _themes_line(cfg: dict) -> str:
+    themes = cfg["auto"].get("themes") or []
+    if not themes:
+        return 'Set "theme": false.'
+    return ('Set "theme": true if the clip is mainly about one of the channel\'s priority themes ('
+            + ", ".join(themes) + "): flirting or rizzing someone, a date, a love or romance scene, a couple "
+            "moment, relationship or therapy-style talk. Otherwise false.")
 
 
 _OTHER_GAME = re.compile(r"\bGTA ?(5|V|Online|RP)\b|\bFiveM\b|\bRed Dead\b", re.I)
@@ -140,6 +153,7 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
         any_topic = meta.get("topic") == "any"
         verdict = llm.watch_video(cfg, proxy.read_bytes(),
                                   (REVIEW_PROMPT_ANY if any_topic else REVIEW_PROMPT)
+                                  .replace("THEMES_LINE", _themes_line(cfg))
                                   .replace("HOOKS", hooks).replace("TITLE", str(meta.get("title", ""))))
     meta["ai_review"] = verdict
     if not verdict:
@@ -154,7 +168,7 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
         if any_topic:
             # non-GTA clip from a top streamer: only as a variety clip, only the viral kinds, higher score
             meta["tier"] = "backup"
-            if ok and not (str(verdict.get("kind")) in ("music_reaction", "culture", "reaction")
+            if ok and not (str(verdict.get("kind")) in ("music_reaction", "culture", "reaction", "romance")
                            and int(verdict.get("score", 0)) >= cfg["auto"].get("backup_min_score", 8)):
                 ok = False
                 verdict["reason"] = "not viral enough for a non-GTA clip: " + str(verdict.get("reason", ""))
@@ -177,6 +191,7 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
         if ok and 8 <= len(new_title) <= 100 and new_title != meta.get("title"):
             log.info("[%s] title corrected: %r -> %r", clip_id, meta.get("title"), new_title)
             meta["title_written"], meta["title"] = meta.get("title"), new_title[:90]
+        meta["theme"] = verdict.get("theme") is True
         meta["kind"] = str(verdict.get("kind") or ("gameplay" if verdict.get("gameplay") else "other"))[:30]
         meta["status"] = "approved" if ok else "rejected"
         best = int(verdict.get("best_hook", 1) or 1)
@@ -205,9 +220,11 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
 
 def _rank(m: dict, cfg: dict, variety_due: bool = False):
     """Posting order: gameplay before variety clips (the other way round when a variety post is due),
-    then [auto] priority_channels, then best score, newest."""
+    then clips on the channel's [auto] themes, then [auto] priority_channels, then best score, newest."""
     top = [c.lower() for c in cfg["auto"].get("priority_channels", [])]
-    return ((m.get("tier") == "backup") != variety_due, str(m.get("channel", "")).lower() not in top,
+    on_theme = bool(cfg["auto"].get("themes")) and m.get("theme") is True
+    return ((m.get("tier") == "backup") != variety_due, not on_theme,
+            str(m.get("channel", "")).lower() not in top,
             -(m.get("ai_review") or {}).get("score", 0), -m["created"])
 
 
@@ -296,7 +313,7 @@ def _post_one(meta: dict, platform: str, variant: int, cfg: dict) -> bool:
     HISTORY.write_text(json.dumps(_history() + [{
         "id": meta["id"], "platform": platform, "date": quota_day(), "at": time.time(),
         "hook_structure": hook["structure"], "channel": meta["channel"], "result": result,
-        "title": meta.get("title", ""), "tier": meta.get("tier", "gameplay"), "kind": meta.get("kind", ""),
+        "title": meta.get("title", ""), "tier": meta.get("tier", "gameplay"), "kind": meta.get("kind", ""), "theme": bool(meta.get("theme")),
         "score": (meta.get("ai_review") or {}).get("score")}], indent=2))
     if all(meta["posts"].get(p, {}).get("ok") for p in cfg["upload"]["platforms"]):
         meta["status"] = "posted"

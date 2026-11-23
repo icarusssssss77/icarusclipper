@@ -137,6 +137,9 @@ gameplay_only = true          # gameplay is the main content; clips without the 
 backup_when_no_gameplay = true  # ...unless they're clearly about GTA 6 ("variety" clips: music reactions,
 backup_min_score = 8          #    cultural references, viral talk). Variety clips need this AI score.
 variety_every = 3             # every 3rd post may be a variety clip when one is ready (0 = only when no gameplay)
+themes = ["dating", "rizz and flirting", "romance and love scenes", "couples", "relationship and therapy talk"]
+                              # clips about these are looked for first, scored higher and posted first ([] = off).
+                              # Explicit sexual content and nudity are still rejected (age-restriction kills reach).
 priority_channels = ["kaicenat", "ishowspeed"]   # their approved clips are posted before anyone else's
 max_age_hours = 24            # approved clips older than this are not posted (last night's clips can fill the next afternoon)
 

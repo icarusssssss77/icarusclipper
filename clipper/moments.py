@@ -187,6 +187,13 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
         f"### candidate {it['id']}  window {it['lo']:.1f}-{it['hi']:.1f}s  peak {it['peak']:.1f}s  "
         f"signal {it['signal']:.1f}\n{_lines(it['words'])}" for it in items)
     system = (SYSTEM_ANY if topic == "any" else SYSTEM).replace("MIN-MAX", f"{cfg['clip']['min_len']}-{cfg['clip']['max_len']}")
+    themes = cfg["auto"].get("themes") or []
+    if themes:
+        system += ("\n\nPRIORITY THEMES for this channel right now: " + ", ".join(themes) + ".\n"
+                   "Look for these first: flirting with or 'rizzing' a character or person, dates, love and romance "
+                   "scenes, couple moments, jealousy, breakups, relationship advice or therapy-style talk. Give such a "
+                   "moment +2 on its score (max 10), and write its hooks and title around that angle - only if it "
+                   "really is what happens. Keep it suggestive at most: no explicit sexual content or nudity.")
     answer = llm.ask_json(cfg, system, prompt) or {}
     by_id = {c.get("id"): c for c in answer.get("clips", []) if isinstance(c, dict)}
 
