@@ -238,14 +238,18 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
     return meta
 
 
+PERFORMANCE: dict[str, int] = {}   # streamer -> 0/1/2 from real view counts (stats.channel_buckets), set by batch
+
+
 def _rank(m: dict, cfg: dict, variety_due: bool = False):
     """Posting order: gameplay before variety clips (the other way round when a variety post is due),
-    then clips on the channel's [auto] themes, then [auto] priority_channels, then best score, newest."""
+    then clips on the channel's [auto] themes, then streamers whose Shorts get the most views (and last,
+    those that clearly get the fewest), then [auto] priority_channels, then best score, newest."""
     top = [c.lower() for c in cfg["auto"].get("priority_channels", [])]
     on_theme = bool(cfg["auto"].get("themes")) and m.get("theme") is True
-    return ((m.get("tier") == "backup") != variety_due, not on_theme,
-            str(m.get("channel", "")).lower() not in top,
-            -(m.get("ai_review") or {}).get("score", 0), -m["created"])
+    ch = str(m.get("channel", "")).lower()
+    return ((m.get("tier") == "backup") != variety_due, not on_theme, -PERFORMANCE.get(ch, 1),
+            ch not in top, -(m.get("ai_review") or {}).get("score", 0), -m["created"])
 
 
 def _variety_due(cfg: dict, platform: str) -> bool:

@@ -63,6 +63,81 @@ def _views_page(ids: list[str]) -> dict[str, int]:
     return out
 
 
+def _views_feed() -> dict[str, int]:
+    """View counts of the channel's latest uploads from its public feed (no key, no login)."""
+    import re
+
+    import requests
+    f = review.QUEUE / "_channel_id.txt"
+    if not f.exists():
+        return {}
+    r = requests.get("https://www.youtube.com/feeds/videos.xml", params={"channel_id": f.read_text().strip()},
+                     timeout=30, headers={"User-Agent": "Mozilla/5.0"})
+    r.raise_for_status()
+    out: dict[str, int] = {}
+    for entry in r.text.split("<entry>")[1:]:
+        vid = re.search(r"<yt:videoId>([^<]+)</yt:videoId>", entry)
+        n = re.search(r'<media:statistics views="(\d+)"', entry)
+        if vid and n:
+            out[vid.group(1)] = int(n.group(1))
+    return out
+
+
+def _fetch(ids: list[str]) -> dict[str, int]:
+    import os
+    views: dict[str, int] = {}
+    sources = [("feed", lambda: _views_feed())]
+    if os.environ.get("YOUTUBE_API_KEY", "").strip():
+        sources.insert(0, ("api key", lambda: _views_api(ids)))
+    for name, fn in sources:
+        try:
+            got = fn()
+        except Exception as e:
+            log.info("views via %s not available (%s)", name, str(e)[:100])
+            continue
+        for k, v in got.items():
+            views.setdefault(k, v)
+        if got:
+            log.info("views: %d counts read via %s", len(got), name)
+    return views
+
+
+def refresh() -> None:
+    """Write the newest view counts onto the upload history (kept between runs)."""
+    hist = review._history()
+    ids = [v for v in (_video_id(str(h.get("result", ""))) for h in hist if h.get("platform") == "youtube") if v]
+    if not ids:
+        return
+    views = _fetch(ids)
+    if not views:
+        return
+    now = time.time()
+    for h in hist:
+        vid = _video_id(str(h.get("result", "")))
+        if vid in views:
+            h["views"], h["views_at"] = views[vid], now
+    review.HISTORY.write_text(json.dumps(hist, indent=2))
+
+
+def channel_buckets(min_clips: int = 3, min_age_h: float = 6) -> dict[str, int]:
+    """Streamer -> 2 (clearly above the channel's typical Short), 1 (typical / not enough data), 0 (clearly below).
+    Only Shorts whose views were read at least min_age_h after posting count."""
+    by: dict[str, list[int]] = {}
+    for h in review._history():
+        if h.get("views") is not None and h.get("views_at", 0) - h.get("at", 0) >= min_age_h * 3600:
+            by.setdefault(str(h.get("channel", "")).lower(), []).append(int(h["views"]))
+    allv = [v for vs in by.values() for v in vs]
+    if len(allv) < 8:
+        return {}
+    typical = max(statistics.median(allv), 1)
+    out = {}
+    for ch, vs in by.items():
+        if len(vs) >= min_clips:
+            med = statistics.median(vs)
+            out[ch] = 2 if med >= 1.5 * typical else 0 if med <= 0.5 * typical else 1
+    return out
+
+
 def report(cfg: dict) -> list[dict]:
     rows = []
     for h in review._history():
@@ -77,11 +152,8 @@ def report(cfg: dict) -> list[dict]:
     if not rows:
         return rows
     ids = [r["id"] for r in rows]
-    try:
-        views = _views_api(ids)
-    except Exception as e:
-        log.info("views via API not available (%s); reading the public pages", str(e)[:120])
-        views = _views_page(ids)
+    views = {_video_id(str(h.get("result", ""))): h["views"] for h in review._history() if h.get("views") is not None}
+    views.update(_fetch(ids))
     if not views:
         log.warning("views report: could not read any view counts")
         return rows
@@ -101,4 +173,8 @@ def report(cfg: dict) -> list[dict]:
         for name, v in sorted(groups.items(), key=lambda kv: -statistics.median(kv[1])):
             log.info("views report: by %-7s %-16s %2d Shorts  median %6d  best %6d", key, name, len(v),
                      statistics.median(v), max(v))
+    b = channel_buckets()
+    if b:
+        log.info("views report: posting order now favours %s; holds back %s",
+                 [c for c, x in b.items() if x == 2] or "nobody yet", [c for c, x in b.items() if x == 0] or "nobody")
     return rows

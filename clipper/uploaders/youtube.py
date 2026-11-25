@@ -103,6 +103,12 @@ def upload(video: Path, meta: dict, cfg: dict) -> str:
     resp = None
     while resp is None:
         _, resp = req.next_chunk()
+    try:   # remembered so view counts can be read from the channel's public feed (no API key needed)
+        cid = resp.get("snippet", {}).get("channelId")
+        if cid:
+            (video.parent.parent / "_channel_id.txt").write_text(cid)
+    except OSError:
+        pass
     thumb = video.parent / "thumb.jpg"
     if thumb.exists():
         try:  # needs a phone-verified channel; a failure here never fails the upload

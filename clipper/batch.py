@@ -116,6 +116,14 @@ def run(cfg: dict) -> None:
     b = cfg["batch"]
     state = json.loads(STATE.read_text()) if STATE.exists() else {}
     shutil.rmtree(WORK, ignore_errors=True)
+    try:   # real view counts decide whose clips go first (never fails the run)
+        from . import stats
+        stats.refresh()
+        review.PERFORMANCE = stats.channel_buckets()
+        if review.PERFORMANCE:
+            log.info("views so far (2 = above typical, 0 = below): %s", review.PERFORMANCE)
+    except Exception as e:
+        log.warning("could not read view counts: %s", e)
     # 1) clips approved in earlier runs: post one right away, before any recording
     posted = review.post_batch(cfg, b["posts_per_run"], {}, backups=False)
     # 2) clips an earlier run rendered but never got reviewed (it crashed or ran out of time)
