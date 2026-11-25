@@ -181,8 +181,19 @@ def auto_review(clip_id: str, cfg: dict, src: Path | None = None) -> dict:
                            and int(verdict.get("score", 0)) >= cfg["auto"].get("backup_min_score", 8)):
                 ok = False
                 verdict["reason"] = "not viral enough for a non-GTA clip: " + str(verdict.get("reason", ""))
-        elif ok and (verdict.get("is_gta6") is False or _OTHER_GAME.search(str(verdict.get("new_title") or ""))):
-            ok = False                      # a GTA 6 channel with GTA 6 tags: another game would be mislabelled
+        elif verdict.get("is_gta6") is False or (ok and _OTHER_GAME.search(str(verdict.get("new_title") or ""))):
+            # Another game on a "GTA" stream. It must not go out with GTA 6 wording and tags - but a strong
+            # moment is still wanted as a variety clip, so judge it once more under the non-GTA rules.
+            if cfg["auto"].get("other_games_as_variety", True) and not meta.get("rerouted"):
+                credit = [ln for ln in str(meta.get("caption", "")).splitlines() if ln.startswith("\U0001f3a5")]
+                meta.update(topic="any", rerouted=True,
+                            caption="\n".join([f"Clipped from {meta['channel']}'s stream", *credit]),
+                            hashtags=[t for t in meta.get("hashtags", []) if not re.match(
+                                r"(?i)gta|vicecity|grandtheft|rockstar", t)] + ["reaction"])
+                save(meta)
+                log.info("[%s] not GTA 6 - reviewing again as a non-GTA variety clip", clip_id)
+                return auto_review(clip_id, cfg, src)
+            ok = False
             verdict["reason"] = "not GTA 6: " + str(verdict.get("reason", ""))
         elif ok and cfg["auto"].get("gameplay_only", True) and verdict.get("gameplay") is not True:
             # No game on screen. Keep it as a "variety" clip (tier "backup") if it is about GTA 6 and
