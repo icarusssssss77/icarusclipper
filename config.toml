@@ -6,7 +6,12 @@
 # Priority order: biggest streamers first. Each run clips the first [batch] max_channels that are live.
 # Twitch names, or links for YouTube/Kick ("youtube.com/@name/live", "kick.com/name").
 channels = [
-  "kaicenat",
+  # first: streamers with an open GTA 6 clipping campaign (they want their streams clipped) - checked Nov 25
+  "kaicenat",                 # $10k clip pool (Clipped & Shipped)
+  "clix",                     # clip pool (Reach)
+  "asianjeff",                # GTA 6 playthrough campaign
+  "lacy",                     # own clipping program (Discord)
+  # then the biggest names
   "youtube.com/@IShowSpeed/live", "ishowspeed",
   "xqc",
   "caseoh_",
@@ -17,7 +22,6 @@ channels = [
   "agent00",
   "plaqueboymax",
   "ddg",
-  "lacy",
   "thesketchreal",
   "rdcgaming",
   "zackrawrr",
@@ -141,7 +145,7 @@ themes = ["dating", "rizz and flirting", "romance and love scenes", "couples", "
           "attractive characters, bikinis and beach or club scenes (suggestive, never explicit)"]
                               # clips about these are looked for first, scored higher and posted first ([] = off).
                               # Explicit sexual content and nudity are still rejected (age-restriction kills reach).
-priority_channels = ["kaicenat", "ishowspeed"]   # their approved clips are posted before anyone else's
+priority_channels = ["kaicenat", "clix", "asianjeff", "lacy", "ishowspeed"]   # their approved clips are posted before anyone else's
 max_age_hours = 24            # approved clips older than this are not posted (last night's clips can fill the next afternoon)
 
 [safety]
