@@ -367,7 +367,7 @@ def post_due(cfg: dict) -> None:
 
 
 def post_batch(cfg: dict, n: int, done: dict | None = None, backups: bool = True) -> dict:
-    """Batch runs: post up to n best approved clips per platform now (daily caps apply, no spacing).
+    """Batch runs: post up to n best approved clips per platform now (daily caps and spacing apply).
     `done` = how many this run already posted per platform, so it can be called after every source."""
     done = done if done is not None else {}
     max_age = cfg["auto"]["max_age_hours"] * 3600
@@ -375,7 +375,7 @@ def post_batch(cfg: dict, n: int, done: dict | None = None, backups: bool = True
         posted = done.get(platform, 0)
         failures = 0
         while (posted < n and failures < 3 and platform not in _BLOCKED
-               and not _can_post(cfg, platform, respect_gap=False)):
+               and not _can_post(cfg, platform, respect_gap=True)):
             due = _variety_due(cfg, platform)
             ready = [m for m in items("approved") if time.time() - m["created"] < max_age
                      and not m["posts"].get(platform, {}).get("ok")

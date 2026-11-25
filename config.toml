@@ -150,9 +150,10 @@ priority_channels = ["kaicenat", "clix", "asianjeff", "lacy", "ishowspeed"]   # 
 max_age_hours = 24            # approved clips older than this are not posted (last night's clips can fill the next afternoon)
 
 [safety]
-min_minutes_between_posts = 90   # spread posts out per platform
+min_minutes_between_posts = 210  # at least 3.5 hours between Shorts: fewer, stronger posts (the last 15 Shorts
+                              # got 58 views in total - flooding a channel YouTube is not showing makes it worse)
 [safety.daily_caps]
-youtube = 13                  # one per hourly run (YouTube API allows 100/day)
+youtube = 4                   # was 13; raise again once Shorts are getting shown
 tiktok = 10
 instagram = 10
 # One-day exceptions (the day is counted in Pacific time, like YouTube's quota).

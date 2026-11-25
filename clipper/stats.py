@@ -143,7 +143,9 @@ def channel_buckets(min_clips: int = 3, min_age_h: float = 6) -> dict[str, int]:
     allv = [v for vs in by.values() for v in vs]
     if len(allv) < 8:
         return {}
-    typical = max(statistics.median(allv), 1)
+    typical = statistics.median(allv)
+    if typical < 30:   # nothing is being shown at all: differences of a few views are noise, not a signal
+        return {}
     out = {}
     for ch, vs in by.items():
         if len(vs) >= min_clips:
