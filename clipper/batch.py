@@ -118,7 +118,7 @@ def run(cfg: dict) -> None:
     shutil.rmtree(WORK, ignore_errors=True)
     try:   # real view counts decide whose clips go first (never fails the run)
         from . import stats
-        stats.refresh()
+        stats.refresh(cfg.get("stats", {}).get("extra_videos", []))
         review.PERFORMANCE = stats.channel_buckets()
         if review.PERFORMANCE:
             log.info("views so far (2 = above typical, 0 = below): %s", review.PERFORMANCE)

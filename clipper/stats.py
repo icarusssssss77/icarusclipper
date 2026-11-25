@@ -63,13 +63,29 @@ def _views_page(ids: list[str]) -> dict[str, int]:
     return out
 
 
-def _views_feed() -> dict[str, int]:
+def _views_feed(seed: list[str] | None = None) -> dict[str, int]:
     """View counts of the channel's latest uploads from its public feed (no key, no login)."""
     import re
 
     import requests
     f = review.QUEUE / "_channel_id.txt"
+    if not f.exists():   # no upload since this was added: find the channel from one of its known Shorts
+        vids = [v for v in (_video_id(str(h.get("result", ""))) for h in review._history()) if v] + list(seed or [])
+        for vid in vids[-3:]:
+            try:
+                o = requests.get("https://www.youtube.com/oembed", timeout=20, params={
+                    "url": f"https://www.youtube.com/shorts/{vid}", "format": "json"}).json()
+                page = requests.get(o["author_url"], timeout=20, headers={"User-Agent": "Mozilla/5.0",
+                                                                          "Accept-Language": "en-US"}).text
+                m = re.search(r"channel_id=(UC[\w-]{22})", page) or re.search(r'"channelId":"(UC[\w-]{22})"', page)
+                if m:
+                    f.parent.mkdir(parents=True, exist_ok=True)
+                    f.write_text(m.group(1))
+                    break
+            except Exception as e:
+                log.info("could not find the channel from Short %s (%s)", vid, str(e)[:80])
     if not f.exists():
+        log.info("views feed: channel not known yet (it is saved at the next upload)")
         return {}
     r = requests.get("https://www.youtube.com/feeds/videos.xml", params={"channel_id": f.read_text().strip()},
                      timeout=30, headers={"User-Agent": "Mozilla/5.0"})
@@ -86,7 +102,7 @@ def _views_feed() -> dict[str, int]:
 def _fetch(ids: list[str]) -> dict[str, int]:
     import os
     views: dict[str, int] = {}
-    sources = [("feed", lambda: _views_feed())]
+    sources = [("feed", lambda: _views_feed(ids))]
     if os.environ.get("YOUTUBE_API_KEY", "").strip():
         sources.insert(0, ("api key", lambda: _views_api(ids)))
     for name, fn in sources:
@@ -102,13 +118,11 @@ def _fetch(ids: list[str]) -> dict[str, int]:
     return views
 
 
-def refresh() -> None:
+def refresh(seed: list[str] | None = None) -> None:
     """Write the newest view counts onto the upload history (kept between runs)."""
     hist = review._history()
     ids = [v for v in (_video_id(str(h.get("result", ""))) for h in hist if h.get("platform") == "youtube") if v]
-    if not ids:
-        return
-    views = _fetch(ids)
+    views = _fetch(ids + list(seed or []))
     if not views:
         return
     now = time.time()
