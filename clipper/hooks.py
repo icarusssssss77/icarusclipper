@@ -39,7 +39,9 @@ def reject_reason(hook: str) -> str | None:
 
 def pick(hooks: list[dict], n: int = 3) -> list[dict]:
     """Keep passing hooks, preferring distinct structures, up to n."""
-    ok = [h for h in hooks if h.get("text") and not reject_reason(h["text"])]
+    # the AI sometimes returns a hook as a bare string instead of {"text": ...}
+    hooks = [{"text": h} if isinstance(h, str) else h for h in (hooks or [])]
+    ok = [h for h in hooks if isinstance(h, dict) and h.get("text") and not reject_reason(h["text"])]
     chosen, seen = [], set()
     for h in ok:
         if h.get("structure") not in seen:
