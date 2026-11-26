@@ -133,6 +133,9 @@ skip_hours_after_dud = 3      # a channel whose clips were all junk (AI score 3 
 any_game_channels = ["kaicenat", "ishowspeed", "moistcr1tikal", "jerma985", "caseoh_"]   # recorded even when not on GTA: only viral non-GTA moments
                               # (music reactions, culture, big reactions) are kept, as variety clips
 
+backfill_channels = ["moistcr1tikal", "jerma985", "caseoh_"]   # when nothing is waiting to post and they are offline:
+backfill_hours = 72           # clip older parts of their latest broadcast (if it ended within this many hours)
+
 [auto]                        # Gemini watches every clip and approves/rejects it - no human review
 enabled = true
 min_score = 7                 # 1-10; only clips Gemini scores at least this get posted. The best score is posted

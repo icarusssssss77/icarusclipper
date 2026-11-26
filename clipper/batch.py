@@ -146,6 +146,8 @@ def run(cfg: dict) -> None:
     seen: set[str] = set()
     any_game = {c.lower() for c in b.get("any_game_channels", [])}
     topics: dict[str, str] = {}                        # channel -> "any" when it is not a GTA stream
+    backfill_from = {c.lower() for c in b.get("backfill_channels", [])}
+    queue_has_clips = bool(review.items("approved"))
 
     for ch in cfg["stream"]["channels"]:               # list order = priority (biggest first)
         if len(sources) + len(to_record) >= b["max_channels"]:
@@ -168,7 +170,26 @@ def run(cfg: dict) -> None:
         if twitch and meta is None:   # just-ended Twitch broadcast: clip the saved VOD
             # (while a stream is still live its VOD download hangs, so live channels are recorded instead)
             vod = latest_vod(name)
-            if vod and vod["ended_ago"] < b["recent_hours"] * 3600:
+            backfill = (vod and name in backfill_from and not queue_has_clips and not _vod_timeouts
+                        and vod["ended_ago"] < b.get("backfill_hours", 72) * 3600
+                        and (vod["ended_ago"] >= b["recent_hours"] * 3600 or vod["id"] in state))
+            if backfill:
+                # Nothing waiting to post and this streamer's Shorts get views: go further back in their
+                # latest broadcast, one window per run, walking from the end towards the start.
+                back = float(state.get(vod["id"] + ":back",
+                                       vod["duration"] - b["minutes"] * 60 if vod["id"] in state else vod["duration"]))
+                start = max(0.0, back - b["minutes"] * 60)
+                if back - start >= b["min_new_minutes"] * 60:
+                    log.info("[%s] queue is empty - older part of VOD %s: clipping %.0f-%.0f min",
+                             name, vod["id"], start / 60, back / 60)
+                    f = download_section(vod["url"], start, back, WORK / f"{name}.mp4")
+                    state[vod["id"] + ":back"] = start      # also on failure: never retry the same window
+                    if f:
+                        topics[name] = "any"
+                        sources.append((name, f, f"https://twitch.tv/{name}"))
+                        seen.add(name)
+                        continue
+            elif vod and vod["ended_ago"] < b["recent_hours"] * 3600:
                 done_until = float(state.get(vod["id"], 0))
                 start = max(done_until, vod["duration"] - b["minutes"] * 60)
                 if _vod_timeouts:
