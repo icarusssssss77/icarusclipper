@@ -85,6 +85,9 @@ def is_live(url: str) -> bool:
     return live_info(url) is not None
 
 
+_vod_timeouts = 0   # stuck VOD downloads this run: after one, the rest are skipped (they stall together)
+
+
 def download_section(url: str, start: float, end: float, out: Path) -> Path | None:
     """Download one part of an ENDED stream's VOD (live channels are recorded instead). Cuts are
     re-encoded at the edges: a plain stream copy gave files whose length could not be read.
@@ -96,6 +99,8 @@ def download_section(url: str, start: float, end: float, out: Path) -> Path | No
                             "-o", str(out), url], timeout=900)
     except subprocess.TimeoutExpired:
         log.warning("VOD download timed out after 15 min: %s", url)
+        global _vod_timeouts
+        _vod_timeouts += 1
         for f in out.parent.glob(out.stem + ".*"):
             f.unlink(missing_ok=True)
         return None
@@ -166,7 +171,9 @@ def run(cfg: dict) -> None:
             if vod and vod["ended_ago"] < b["recent_hours"] * 3600:
                 done_until = float(state.get(vod["id"], 0))
                 start = max(done_until, vod["duration"] - b["minutes"] * 60)
-                if vod["duration"] - start >= b["min_new_minutes"] * 60:
+                if _vod_timeouts:
+                    log.info("[%s] VOD skipped: an earlier VOD download got stuck this run", name)
+                elif vod["duration"] - start >= b["min_new_minutes"] * 60:
                     log.info("[%s] VOD %s: clipping %.0f-%.0f min", name, vod["id"], start / 60, vod["duration"] / 60)
                     f = download_section(vod["url"], start, vod["duration"], WORK / f"{name}.mp4")
                     if f:
@@ -174,6 +181,8 @@ def run(cfg: dict) -> None:
                         sources.append((name, f, f"https://twitch.tv/{name}"))
                         seen.add(name)
                         continue
+                    if _vod_timeouts:   # don't spend 15 minutes on the same stuck VOD every run
+                        state[vod["id"]] = vod["duration"]
         if meta is None:
             log.info("[%s] not live", name)
         else:

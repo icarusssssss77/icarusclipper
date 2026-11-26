@@ -140,7 +140,7 @@ min_score = 7                 # 1-10; only clips Gemini scores at least this get
 gameplay_only = true          # gameplay is the main content; clips without the game on screen are rejected...
 backup_when_no_gameplay = true  # ...unless they're clearly about GTA 6 ("variety" clips: music reactions,
 backup_min_score = 8          #    cultural references, viral talk). Variety clips need this AI score.
-variety_every = 3             # every 3rd post may be a variety clip when one is ready (0 = only when no gameplay)
+variety_every = 2             # every 3rd post may be a variety clip when one is ready (0 = only when no gameplay)
 other_games_as_variety = true   # a strong moment in another game is re-checked as a non-GTA variety clip (own title, no GTA tags)
 themes = ["dating", "rizz and flirting", "romance and love scenes", "couples", "relationship and therapy talk",
           "attractive characters, bikinis and beach or club scenes (suggestive, never explicit)"]

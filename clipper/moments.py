@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import tempfile
 from pathlib import Path
 
@@ -174,6 +175,26 @@ def _fallback_hooks(channel: str, words: list[dict]) -> list[dict]:
     return [o for o in opts if o]
 
 
+def _by_id(answer, n: int) -> dict:
+    """The AI's clips keyed by candidate id. Some models answer with a bare list, another key name,
+    or ids as text ("0", "candidate 0") - accept those instead of silently dropping the whole answer."""
+    if isinstance(answer, dict):
+        rows = next((answer[k] for k in ("clips", "candidates", "results", "moments")
+                     if isinstance(answer.get(k), list)), None)
+        if rows is None:
+            rows = [answer] if "start" in answer else []
+    else:
+        rows = answer if isinstance(answer, list) else []
+    rows = [c for c in rows if isinstance(c, dict)]
+    out = {}
+    for pos, c in enumerate(rows):
+        m = re.search(r"\d+", str(c.get("id", c.get("candidate", ""))))
+        i = int(m.group()) if m else (pos if len(rows) == n else None)
+        if i is not None and 0 <= i < n and i not in out:
+            out[i] = c
+    return out
+
+
 def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str,
             src_len: float, topic: str = "gta") -> list[dict]:
     """For each candidate peak (time, signal score) return a clip dict ready to render."""
@@ -197,7 +218,9 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
                    "and never bend a title or hook toward a theme that is not in the clip. Keep it suggestive at most; "
                    "titles and hooks stay clean (no explicit sexual words, no body-part words).")
     answer = llm.ask_json(cfg, system, prompt) or {}
-    by_id = {c.get("id"): c for c in answer.get("clips", []) if isinstance(c, dict)}
+    by_id = _by_id(answer, len(items))
+    if items and not by_id:
+        log.warning("AI answer had no usable clips (%s) - using rule-based cuts and hooks", str(answer)[:200])
 
     clips = []
     for it in items:
