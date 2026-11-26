@@ -215,7 +215,9 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
                    "date, a love scene, a couple moment, a breakup, relationship advice, the streamer reacting to an "
                    "attractive character or a beach / club scene), give it +1 on its score and build the hook and title "
                    "on that angle. Most moments are NOT about these themes: for those, ignore this paragraph completely "
-                   "and never bend a title or hook toward a theme that is not in the clip. Keep it suggestive at most; "
+                   "and never bend a title or hook toward a theme that is not in the clip. A clip whose hooks promise rizz, "
+                   "a stunner or a date that the video does not show gets thrown away, so when in doubt write the plain, "
+                   "literal hook about what actually happens. Keep it suggestive at most; "
                    "titles and hooks stay clean (no explicit sexual words, no body-part words).")
     answer = llm.ask_json(cfg, system, prompt) or {}
     by_id = _by_id(answer, len(items))
