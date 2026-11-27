@@ -115,6 +115,37 @@ def download_section(url: str, start: float, end: float, out: Path) -> Path | No
                 out.stat().st_size if out.exists() else 0, url, (r.stderr or "").strip()[-400:])
     for f in out.parent.glob(out.stem + ".*"):
         f.unlink(missing_ok=True)
+    return _download_section_ffmpeg(url, start, end, out)
+
+
+def _download_section_ffmpeg(url: str, start: float, end: float, out: Path) -> Path | None:
+    """Second way to get a VOD part, for broadcasts where yt-dlp's own cutting writes an empty file:
+    ask yt-dlp only for the stream address and let ffmpeg seek and re-encode the part."""
+    try:
+        g = subprocess.run(["yt-dlp", "--no-warnings", "-g", "-f", "720p/720p30/720p60/best[height<=720]/best", url],
+                           capture_output=True, text=True, timeout=90)
+        stream = (g.stdout or "").strip().splitlines()
+        if g.returncode != 0 or not stream:
+            log.warning("VOD fallback: no stream address (%s)", (g.stderr or "").strip()[-300:])
+            return None
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-ss", str(int(start)),
+                            "-i", stream[0], "-t", str(int(end - start)), "-c:v", "libx264", "-preset", "veryfast",
+                            "-crf", "23", "-c:a", "aac", "-b:a", "128k", str(out)],
+                           capture_output=True, text=True, timeout=720)
+        from .pipeline import duration
+        if r.returncode == 0 and out.exists() and duration(out) >= 60:
+            log.info("VOD fallback (ffmpeg) worked: %s", url)
+            return out
+        log.warning("VOD fallback gave no usable file (exit %s, %s bytes): %s", r.returncode,
+                    out.stat().st_size if out.exists() else 0, (r.stderr or "").strip()[-400:])
+    except subprocess.TimeoutExpired:
+        log.warning("VOD fallback timed out: %s", url)
+        global _vod_timeouts
+        _vod_timeouts += 1
+    except Exception as e:
+        log.warning("VOD fallback failed: %s", e)
+    for f in out.parent.glob(out.stem + ".*"):
+        f.unlink(missing_ok=True)
     return None
 
 
