@@ -229,6 +229,8 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
         a = by_id.get(it["id"])
         if a is not None and not a.get("keep", True):
             continue
+        if a is None and by_id:
+            continue   # the AI answered for other candidates and left this one out: it did not think it worth a clip
         try:
             start, end = float(a["start"]), float(a["end"])
         except (TypeError, KeyError, ValueError):
