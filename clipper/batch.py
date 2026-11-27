@@ -96,7 +96,7 @@ def download_section(url: str, start: float, end: float, out: Path) -> Path | No
     try:
         r = subprocess.run(["yt-dlp", "--no-warnings", "-q", "-f", "720p/720p30/720p60/best[height<=720]/best",
                             "--download-sections", f"*{int(start)}-{int(end)}", "--force-keyframes-at-cuts",
-                            "-o", str(out), url], timeout=900)
+                            "-o", str(out), url], timeout=900, stderr=subprocess.PIPE, text=True)
     except subprocess.TimeoutExpired:
         log.warning("VOD download timed out after 15 min: %s", url)
         global _vod_timeouts
@@ -104,7 +104,18 @@ def download_section(url: str, start: float, end: float, out: Path) -> Path | No
         for f in out.parent.glob(out.stem + ".*"):
             f.unlink(missing_ok=True)
         return None
-    return out if r.returncode == 0 and out.exists() else None
+    if r.returncode == 0 and out.exists():
+        try:   # yt-dlp sometimes "succeeds" with a file that cannot be read: catch it here, with its reason
+            from .pipeline import duration
+            if duration(out) >= 60:
+                return out
+        except Exception:
+            pass
+    log.warning("VOD download gave no usable file (exit %s, %s bytes): %s | %s", r.returncode,
+                out.stat().st_size if out.exists() else 0, url, (r.stderr or "").strip()[-400:])
+    for f in out.parent.glob(out.stem + ".*"):
+        f.unlink(missing_ok=True)
+    return None
 
 
 def record_live(url: str, minutes: float, out: Path) -> Path | None:
