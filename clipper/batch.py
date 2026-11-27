@@ -172,7 +172,7 @@ def run(cfg: dict) -> None:
     except Exception as e:
         log.warning("could not read view counts: %s", e)
     # 1) clips approved in earlier runs: post one right away, before any recording
-    posted = review.post_batch(cfg, b["posts_per_run"], {}, backups=False)
+    posted = review.post_batch(cfg, b["posts_per_run"], {})   # variety clips too: they are what gets views, no reason to wait for the end of the run
     # 2) clips an earlier run rendered but never got reviewed (it crashed or ran out of time)
     max_age = cfg["auto"]["max_age_hours"] * 3600
     for m in review.items("pending"):
