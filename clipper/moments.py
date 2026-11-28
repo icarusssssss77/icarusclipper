@@ -228,6 +228,9 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
                    "titles and hooks stay clean (no explicit sexual words, no body-part words).")
     answer = llm.ask_json(cfg, system, prompt) or {}
     by_id = _by_id(answer, len(items))
+    if items and not by_id and isinstance(answer, dict) and answer.get("clips") == []:
+        log.info("AI found nothing worth clipping in this part")
+        return []
     if items and not by_id:
         log.warning("AI answer had no usable clips (%s) - using rule-based cuts and hooks", str(answer)[:200])
 

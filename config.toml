@@ -122,7 +122,7 @@ youtube_privacy = "public"
 
 [batch]                       # `python -m clipper batch` - what the scheduled GitHub Action runs
 minutes = 25                  # look at the most recent N minutes of each broadcast per run (shorter = faster runs)
-max_channels = 2              # channels clipped per run (first ones in the list that are live/just ended);
+max_channels = 3              # channels clipped per run (first ones in the list that are live/just ended);
                               # each takes ~20 min to clip, and a run has to finish within the hour
 recent_hours = 3              # only broadcasts that are live or ended within this many hours
 min_new_minutes = 10          # skip a channel if fewer new minutes than this since the last run
