@@ -208,6 +208,13 @@ def package(src: Path, cands: list[tuple[float, float]], cfg: dict, channel: str
         f"### candidate {it['id']}  window {it['lo']:.1f}-{it['hi']:.1f}s  peak {it['peak']:.1f}s  "
         f"signal {it['signal']:.1f}\n{_lines(it['words'])}" for it in items)
     system = (SYSTEM_ANY if topic == "any" else SYSTEM).replace("MIN-MAX", f"{cfg['clip']['min_len']}-{cfg['clip']['max_len']}")
+    system += ("\n\nYOU CANNOT SEE THE VIDEO - only the words spoken. Half of all clips are thrown away because the hook "
+               "or title names something that is not in the video (an animal, a fight, a person, a place, 'rizz', a game "
+               "event) that was guessed from a word or two. So: every hook and title must be backed by words in the "
+               "transcript lines you were given; quote or closely paraphrase what the streamer reacts to; never name a "
+               "specific thing, person or event unless it is said out loud; if you cannot tell what happens on screen, "
+               "write the hook about the streamer's reaction itself (what they say, how they say it) and set \"keep\": "
+               "false when even that is weak.")
     themes = cfg["auto"].get("themes") or []
     if themes:
         system += ("\n\nPREFERRED THEMES for this channel: " + ", ".join(themes) + ".\n"
